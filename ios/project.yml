@@ -1,0 +1,41 @@
+# Generate the Xcode project with XcodeGen:  brew install xcodegen && xcodegen
+name: PurrSense
+options:
+  bundleIdPrefix: dev.twobrain
+  deploymentTarget:
+    iOS: "26.0"   # Apple Foundation Models (Apple Intelligence) require iOS 26+
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: "12.19.0"  # hybrid on-device needs >= 12.13.0
+targets:
+  PurrSense:
+    type: application
+    platform: iOS
+    sources: [PurrSense]
+    resources:
+      - path: PurrSense/GoogleService-Info.plist
+        optional: true
+    info:
+      path: PurrSense/Info.plist
+      properties:
+        CFBundleDisplayName: PurrSense
+        UILaunchScreen: {}
+        NSCameraUsageDescription: PurrSense uses the camera to read your cat's facial expression.
+        NSPhotoLibraryUsageDescription: PurrSense reads a cat photo you choose to analyse it.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.twobrain.purrsense
+        SWIFT_VERSION: "5.0"
+        SWIFT_STRICT_CONCURRENCY: minimal
+    dependencies:
+      - package: Firebase
+        product: FirebaseAILogic
+      - package: Firebase
+        product: FirebaseAppCheck
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseRemoteConfig

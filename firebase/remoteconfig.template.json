@@ -1,0 +1,17 @@
+{
+  "parameters": {
+    "cloud_quick_model": {
+      "defaultValue": { "value": "gemini-3.5-flash-lite" },
+      "description": "Cloud model for the quick read (Android fallback / iOS vision) and hybrid text fallback"
+    },
+    "cloud_deep_model": {
+      "defaultValue": { "value": "gemini-3.8-flash" },
+      "description": "Cloud model for the Deep Check escalation"
+    },
+    "grimace_alert_threshold": {
+      "defaultValue": { "value": "4" },
+      "valueType": "NUMBER",
+      "description": "Feline Grimace Scale total (0-10) at or above which a Deep Check runs and a vet is suggested"
+    }
+  }
+}
