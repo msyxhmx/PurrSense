@@ -12,7 +12,7 @@ object Prompts {
     const val QUICK_READ = """You are a feline behaviour assistant. Look at the cat photo.
 Reply with ONLY one JSON object, no markdown:
 {"cat":bool,"face_visible":bool,"appearance":"coat colour, pattern, eye colour, marks (max 15 words)",
-"mood":"relaxed|alert|playful|sleepy|anxious|fearful|irritated|uncomfortable",
+"mood":"positive|neutral|negative",
 "mood_confidence":0.0-1.0,
 "fgs":{"ears":0-2,"eyes":0-2,"muzzle":0-2,"whiskers":0-2,"head":0-2},
 "signs":["visible issues e.g. eye discharge, squinting, nasal discharge, unkempt coat"]}
@@ -22,6 +22,8 @@ eyes: 0 open, 2 squinted/closed tight.
 muzzle: 0 relaxed round, 2 tense elliptical.
 whiskers: 0 loose curved, 2 straight and pulled forward.
 head: 0 above shoulder line, 2 below shoulders or tilted down.
+Mood: positive = relaxed, content or playful; neutral = calm, alert or sleepy, no clear sign;
+negative = fearful, anxious, irritated or uncomfortable.
 If no cat face is visible set cat/face_visible false and scores 0. Use [] if no signs."""
 
     fun identify(observed: String, cats: List<Cat>): String = buildString {
@@ -33,14 +35,15 @@ If no cat face is visible set cat/face_visible false and scores 0. Use [] if no 
         append("Use unknown if no cat clearly matches.")
     }
 
-    fun careNote(name: String, read: QuickRead, threshold: Int): String = buildString {
+    fun careNote(name: String, read: QuickRead, threshold: Int, painOffset: Int): String = buildString {
         appendLine("Write a warm, plain-English note (max 3 sentences) to the owner of $name.")
         appendLine("Mood: ${read.mood} (confidence ${"%.0f".format(read.moodConfidence * 100)}%).")
         val g = read.fgs
-        appendLine("Grimace score ${g.total}/10 (ears ${g.ears}, eyes ${g.eyes}, muzzle ${g.muzzle}, whiskers ${g.whiskers}, head ${g.head}).")
+        val score = g.painScore(painOffset)
+        appendLine("Pain score $score/10 (ears ${g.ears}, eyes ${g.eyes}, muzzle ${g.muzzle}, whiskers ${g.whiskers}, head ${g.head}, +$painOffset safety margin).")
         if (read.signs.isNotEmpty()) appendLine("Visible signs: ${read.signs.joinToString()}.")
         appendLine("Explain what the expression suggests and one practical tip.")
-        if (g.total >= threshold || read.signs.isNotEmpty()) {
+        if (score >= threshold || read.signs.isNotEmpty()) {
             appendLine("The score is at or above the pain threshold of $threshold: recommend contacting a vet.")
         }
         append("Never give a diagnosis or medication advice.")
@@ -55,10 +58,10 @@ Reply with ONLY JSON:
 "findings":["short observations"],"summary":"2-3 sentences for the owner, no diagnosis"}
 Be conservative: photo-based screening cannot rule anything out."""
 
-    fun trend(name: String, lines: List<String>): String = buildString {
+    fun trend(name: String, lines: List<String>, threshold: Int): String = buildString {
         appendLine("Summarise $name's recent wellbeing for the owner in max 3 sentences.")
         appendLine("Readings (newest first): ")
         lines.forEach { appendLine("- $it") }
-        append("Mention any trend in mood or grimace score. Suggest a vet visit only if scores are rising or >= 4. No diagnosis.")
+        append("Mention any trend in mood or pain score. Suggest a vet visit only if scores are rising or >= $threshold. No diagnosis.")
     }
 }

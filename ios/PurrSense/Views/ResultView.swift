@@ -6,7 +6,7 @@ struct ResultView: View {
     var body: some View {
         if let a = model.analysis {
             let g = a.grimace
-            let alert = g.total >= a.alertThreshold || !a.quick.signs.isEmpty
+            let alert = a.painScore >= a.alertThreshold || !a.quick.signs.isEmpty
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if let photo = model.photo {
@@ -17,7 +17,7 @@ struct ResultView: View {
                     Text(a.matchedCat?.name ?? "Unknown cat").font(.largeTitle.bold())
                     Text("Mood: \(a.quick.mood.capitalized) · \(Int(a.quick.moodConfidence * 100))% sure").font(.title3)
 
-                    GrimaceCard(grimace: g, threshold: a.alertThreshold, alert: alert)
+                    GrimaceCard(grimace: g, painScore: a.painScore, offset: a.painOffset, threshold: a.alertThreshold, alert: alert)
 
                     if !a.quick.signs.isEmpty {
                         Text("Visible signs: \(a.quick.signs.joined(separator: ", "))").foregroundStyle(.red)
@@ -50,12 +50,18 @@ struct ResultView: View {
 
 struct GrimaceCard: View {
     let grimace: Grimace
+    let painScore: Int
+    let offset: Int
     let threshold: Int
     let alert: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Grimace score \(grimace.total)/10").bold()
+            Text("Pain score \(painScore)/10").bold()
+            if offset > 0 {
+                Text("Grimace \(grimace.total)/10 + \(offset) safety margin: AI models tend to under-score cat pain.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Text(alert ? "At or above \(threshold): possible pain, consider contacting your vet."
                        : "Below \(threshold): no strong pain signs in this photo.")
                 .font(.caption)

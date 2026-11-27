@@ -30,6 +30,33 @@ data class Grimace(
     val head: Int = 0,
 ) {
     val total: Int get() = listOf(ears, eyes, muzzle, whiskers, head).sumOf { it.coerceIn(0, 2) }
+
+    /**
+     * Pain score used for the alert: the raw total plus a correction for Gemini under-scoring.
+     * A Sci Rep 2025 study found chatbots score FGS pain too low (Gemini 1.5 Pro about 2.4/10
+     * low), so a cat truly at 5 would often miss the >= 4 alert. The offset comes from Remote
+     * Config (`gemini_pain_offset`) and is an interim fix until a landmark-based scorer replaces
+     * Gemini (see docs/RESEARCH_HANDOFF.md).
+     */
+    fun painScore(offset: Int): Int = (total + offset).coerceIn(0, 10)
+}
+
+/**
+ * Mood is positive / neutral / negative: the research found no scientific basis for finer cat
+ * mood labels. Pain is read from the grimace score, not from mood. [normalize] also maps the
+ * older 8 labels, so earlier readings and off-format model answers still display sensibly.
+ */
+object Mood {
+    const val POSITIVE = "positive"
+    const val NEUTRAL = "neutral"
+    const val NEGATIVE = "negative"
+
+    fun normalize(raw: String): String = when (raw.trim().lowercase()) {
+        POSITIVE, "relaxed", "playful", "content", "happy" -> POSITIVE
+        NEUTRAL, "alert", "sleepy", "calm" -> NEUTRAL
+        NEGATIVE, "anxious", "fearful", "irritated", "uncomfortable", "stressed" -> NEGATIVE
+        else -> "unknown"
+    }
 }
 
 /** Output of the "See" step (quick read). Parsed from model JSON. */
@@ -66,7 +93,8 @@ data class Reading(
     val catId: String = "unknown",
     val mood: String = "unknown",
     val moodConfidence: Double = 0.0,
-    val grimaceTotal: Int = 0,
+    val grimaceTotal: Int = 0,        // raw model total
+    val painScore: Int = 0,           // grimaceTotal + pain offset, used for the alert
     val grimace: Map<String, Int> = emptyMap(),
     val signs: List<String> = emptyList(),
     val careNote: String = "",
@@ -84,4 +112,9 @@ data class Analysis(
     val deep: DeepCheck?,
     val trace: List<TraceStep>,
     val alertThreshold: Int,
-)
+    val painOffset: Int,
+) {
+    /** The Deep Check's scores win when it ran. */
+    val grimace: Grimace get() = deep?.fgs ?: quick.fgs
+    val painScore: Int get() = grimace.painScore(painOffset)
+}

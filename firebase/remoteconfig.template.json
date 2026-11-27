@@ -11,7 +11,12 @@
     "grimace_alert_threshold": {
       "defaultValue": { "value": "4" },
       "valueType": "NUMBER",
-      "description": "Feline Grimace Scale total (0-10) at or above which a Deep Check runs and a vet is suggested"
+      "description": "Pain score (0-10) at or above which a Deep Check runs and a vet is suggested"
+    },
+    "gemini_pain_offset": {
+      "defaultValue": { "value": "2" },
+      "valueType": "NUMBER",
+      "description": "Points (0-5) added to Gemini's grimace total before the alert check. Gemini under-scores FGS pain by about 2.4/10 (Sci Rep 2025). Interim fix until a landmark-based scorer replaces Gemini."
     }
   }
 }

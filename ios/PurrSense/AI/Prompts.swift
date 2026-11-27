@@ -8,7 +8,7 @@ enum Prompts {
     You are a feline behaviour assistant. Look at the cat photo.
     Reply with ONLY one JSON object, no markdown:
     {"cat":bool,"face_visible":bool,"appearance":"coat colour, pattern, eye colour, marks (max 15 words)",
-    "mood":"relaxed|alert|playful|sleepy|anxious|fearful|irritated|uncomfortable",
+    "mood":"positive|neutral|negative",
     "mood_confidence":0.0-1.0,
     "fgs":{"ears":0-2,"eyes":0-2,"muzzle":0-2,"whiskers":0-2,"head":0-2},
     "signs":["visible issues e.g. eye discharge, squinting, nasal discharge, unkempt coat"]}
@@ -18,6 +18,8 @@ enum Prompts {
     muzzle: 0 relaxed round, 2 tense elliptical.
     whiskers: 0 loose curved, 2 straight and pulled forward.
     head: 0 above shoulder line, 2 below shoulders or tilted down.
+    Mood: positive = relaxed, content or playful; neutral = calm, alert or sleepy, no clear sign;
+    negative = fearful, anxious, irritated or uncomfortable.
     If no cat face is visible set cat/face_visible false and scores 0. Use [] if no signs.
     """
 
@@ -30,14 +32,15 @@ enum Prompts {
         return s
     }
 
-    static func careNote(name: String, read: QuickRead, threshold: Int) -> String {
+    static func careNote(name: String, read: QuickRead, threshold: Int, painOffset: Int) -> String {
         let g = read.fgs
+        let score = g.painScore(offset: painOffset)
         var s = "Write a warm, plain-English note (max 3 sentences) to the owner of \(name).\n"
         s += "Mood: \(read.mood) (confidence \(Int(read.moodConfidence * 100))%).\n"
-        s += "Grimace score \(g.total)/10 (ears \(g.ears), eyes \(g.eyes), muzzle \(g.muzzle), whiskers \(g.whiskers), head \(g.head)).\n"
+        s += "Pain score \(score)/10 (ears \(g.ears), eyes \(g.eyes), muzzle \(g.muzzle), whiskers \(g.whiskers), head \(g.head), +\(painOffset) safety margin).\n"
         if !read.signs.isEmpty { s += "Visible signs: \(read.signs.joined(separator: ", ")).\n" }
         s += "Explain what the expression suggests and one practical tip.\n"
-        if g.total >= threshold || !read.signs.isEmpty {
+        if score >= threshold || !read.signs.isEmpty {
             s += "The score is at or above the pain threshold of \(threshold): recommend contacting a vet.\n"
         }
         s += "Never give a diagnosis or medication advice."
@@ -55,10 +58,10 @@ enum Prompts {
     Be conservative: photo-based screening cannot rule anything out.
     """
 
-    static func trend(name: String, lines: [String]) -> String {
+    static func trend(name: String, lines: [String], threshold: Int) -> String {
         var s = "Summarise \(name)'s recent wellbeing for the owner in max 3 sentences.\nReadings (newest first):\n"
         for l in lines { s += "- \(l)\n" }
-        s += "Mention any trend in mood or grimace score. Suggest a vet visit only if scores are rising or >= 4. No diagnosis."
+        s += "Mention any trend in mood or pain score. Suggest a vet visit only if scores are rising or >= \(threshold). No diagnosis."
         return s
     }
 }

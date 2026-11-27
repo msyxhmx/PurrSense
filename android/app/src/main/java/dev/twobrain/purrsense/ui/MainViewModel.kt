@@ -86,12 +86,12 @@ class MainViewModel : ViewModel() {
 
             var deep: DeepCheck? = null
             if (brain.needsDeepCheck(quick)) {
-                trace += TraceStep("Escalate? score ${quick.fgs.total} ≥ ${config.grimaceThreshold} or signs", Brain.RULES, 0)
+                trace += TraceStep("Escalate? pain ${quick.fgs.painScore(config.painOffset)} ≥ ${config.grimaceThreshold} or signs", Brain.RULES, 0)
                 busy("Score is elevated: asking the cloud for a Deep Check…")
                 deep = runCatching { brain.deepCheck(photo, trace) }.getOrNull() // offline: skip gracefully
             }
 
-            val analysis = Analysis(quick, cat, note, deep, trace, config.grimaceThreshold)
+            val analysis = Analysis(quick, cat, note, deep, trace, config.grimaceThreshold, config.painOffset)
             repo.saveReading(uid, analysis.toReading())
             _state.update { it.copy(busy = null, screen = Screen.Result(photo, analysis)) }
         }.onFailure { e -> _state.update { it.copy(busy = null, error = "Analysis failed: ${e.message}") } }
@@ -120,7 +120,7 @@ class MainViewModel : ViewModel() {
             if (history.isNotEmpty()) {
                 val fmt = SimpleDateFormat("EEE d MMM", Locale.US)
                 val lines = history.take(10).map {
-                    "${fmt.format(Date(it.createdAt))}: mood ${it.mood}, grimace ${it.grimaceTotal}/10" +
+                    "${fmt.format(Date(it.createdAt))}: mood ${it.mood}, pain ${it.painScore}/10" +
                         if (it.signs.isNotEmpty()) ", signs: ${it.signs.joinToString()}" else ""
                 }
                 _state.update { it.copy(trend = brain.trend(cat.name, lines)) }
@@ -136,8 +136,9 @@ class MainViewModel : ViewModel() {
         catId = matchedCat?.id ?: "unknown",
         mood = quick.mood,
         moodConfidence = quick.moodConfidence,
-        grimaceTotal = (deep?.fgs ?: quick.fgs).total,
-        grimace = (deep?.fgs ?: quick.fgs).let {
+        grimaceTotal = grimace.total,
+        painScore = painScore,
+        grimace = grimace.let {
             mapOf("ears" to it.ears, "eyes" to it.eyes, "muzzle" to it.muzzle, "whiskers" to it.whiskers, "head" to it.head)
         },
         signs = quick.signs,

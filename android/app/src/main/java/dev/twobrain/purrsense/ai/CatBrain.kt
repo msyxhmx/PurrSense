@@ -20,6 +20,7 @@ import dev.twobrain.purrsense.data.Brain
 import dev.twobrain.purrsense.data.Cat
 import dev.twobrain.purrsense.data.DeepCheck
 import dev.twobrain.purrsense.data.IdMatch
+import dev.twobrain.purrsense.data.Mood
 import dev.twobrain.purrsense.data.QuickRead
 import dev.twobrain.purrsense.data.TraceStep
 import kotlinx.coroutines.flow.Flow
@@ -87,14 +88,16 @@ class CatBrain(private val config: AppConfig) {
         val brain = response.brain()
         trace += TraceStep("See (mood + grimace)", brain, ms)
 
-        parse<QuickRead>(response.text)?.let { return it }
+        parse<QuickRead>(response.text)?.let { return it.normalized() }
 
         // Small on-device models occasionally break the JSON format: retry once in the cloud.
         Log.w(TAG, "Quick read unparseable from $brain, retrying in cloud: ${response.text}")
         val (retry, ms2) = timed { cloudQuick.generateContent(prompt) }
         trace += TraceStep("See (cloud retry)", Brain.CLOUD, ms2)
-        return parse<QuickRead>(retry.text) ?: QuickRead()
+        return parse<QuickRead>(retry.text)?.normalized() ?: QuickRead()
     }
+
+    private fun QuickRead.normalized() = copy(mood = Mood.normalize(mood))
 
     /** Step 2 "Who": text-only matching of the observed appearance against registered cats. */
     suspend fun identify(observed: String, cats: List<Cat>, trace: MutableList<TraceStep>): Cat? {
@@ -112,15 +115,18 @@ class CatBrain(private val config: AppConfig) {
     /** Step 3 "Care": owner-friendly explanation. Text-only, on-device first. */
     suspend fun careNote(name: String, read: QuickRead, trace: MutableList<TraceStep>): String {
         val (response, ms) = timed {
-            hybrid.generateContent(Prompts.careNote(name, read, config.grimaceThreshold))
+            hybrid.generateContent(Prompts.careNote(name, read, config.grimaceThreshold, config.painOffset))
         }
         trace += TraceStep("Care note", response.brain(), ms)
         return response.text?.trim().orEmpty()
     }
 
-    /** Rule-based escalation decision: no model involved, fully explainable. */
+    /**
+     * Rule-based escalation decision: no model involved, fully explainable. Uses the corrected
+     * pain score (raw total + Remote Config offset), because Gemini under-scores FGS pain.
+     */
     fun needsDeepCheck(read: QuickRead): Boolean =
-        read.cat && (read.fgs.total >= config.grimaceThreshold || read.signs.isNotEmpty())
+        read.cat && (read.fgs.painScore(config.painOffset) >= config.grimaceThreshold || read.signs.isNotEmpty())
 
     /** Step 4 "Deep Check": larger cloud model, higher-resolution image. */
     suspend fun deepCheck(photo: Bitmap, trace: MutableList<TraceStep>): DeepCheck? {
@@ -135,7 +141,7 @@ class CatBrain(private val config: AppConfig) {
 
     /** Weekly trend summary from stored readings (text only, on-device first, works offline). */
     suspend fun trend(name: String, lines: List<String>): Pair<String, Brain> {
-        val response = hybrid.generateContent(Prompts.trend(name, lines))
+        val response = hybrid.generateContent(Prompts.trend(name, lines, config.grimaceThreshold))
         return response.text?.trim().orEmpty() to response.brain()
     }
 

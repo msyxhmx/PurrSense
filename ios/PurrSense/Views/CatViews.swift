@@ -48,7 +48,7 @@ struct CatDetailView: View {
                     VStack(alignment: .leading) {
                         Text(Date(timeIntervalSince1970: r.createdAt / 1000), style: .date)
                             .font(.caption).foregroundStyle(.secondary)
-                        Text("\(r.mood.capitalized) · grimace \(r.grimaceTotal)/10"
+                        Text("\(r.mood.capitalized) · pain \(r.painScore)/10"
                              + (r.deepUrgency.map { " · Deep Check: \($0.replacingOccurrences(of: "_", with: " "))" } ?? ""))
                     }
                 }

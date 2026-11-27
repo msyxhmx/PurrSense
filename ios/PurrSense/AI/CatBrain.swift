@@ -79,14 +79,15 @@ final class CatBrain {
     /// Step 3 "Care": owner-friendly explanation, on-device first.
     func careNote(name: String, read: QuickRead, trace: inout [TraceStep]) async throws -> String {
         let t0 = Date()
-        let (text, brain) = try await hybridText(Prompts.careNote(name: name, read: read, threshold: config.grimaceThreshold))
+        let (text, brain) = try await hybridText(Prompts.careNote(name: name, read: read, threshold: config.grimaceThreshold, painOffset: config.painOffset))
         trace.append(TraceStep(step: "Care note", brain: brain, millis: ms(since: t0)))
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Rule-based escalation: fully explainable, no model involved.
+    /// Rule-based escalation: fully explainable, no model involved. Uses the corrected pain score
+    /// (raw total + Remote Config offset), because Gemini under-scores FGS pain.
     func needsDeepCheck(_ read: QuickRead) -> Bool {
-        read.cat && (read.fgs.total >= config.grimaceThreshold || !read.signs.isEmpty)
+        read.cat && (read.fgs.painScore(offset: config.painOffset) >= config.grimaceThreshold || !read.signs.isEmpty)
     }
 
     /// Step 4 "Deep Check": larger cloud model on a higher-resolution crop.
@@ -100,7 +101,7 @@ final class CatBrain {
 
     /// Weekly trend from stored readings: text only, on-device first, works offline.
     func trend(name: String, lines: [String]) async throws -> (String, Brain) {
-        let (text, brain) = try await hybridText(Prompts.trend(name: name, lines: lines))
+        let (text, brain) = try await hybridText(Prompts.trend(name: name, lines: lines, threshold: config.grimaceThreshold))
         return (text.trimmingCharacters(in: .whitespacesAndNewlines), brain)
     }
 

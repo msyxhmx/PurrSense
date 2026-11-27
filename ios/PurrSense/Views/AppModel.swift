@@ -56,14 +56,14 @@ final class AppModel: ObservableObject {
 
             var deep: DeepCheck?
             if brain.needsDeepCheck(quick) {
-                trace.append(TraceStep(step: "Escalate? score \(quick.fgs.total) ≥ \(config.grimaceThreshold) or signs",
+                trace.append(TraceStep(step: "Escalate? pain \(quick.fgs.painScore(offset: config.painOffset)) ≥ \(config.grimaceThreshold) or signs",
                                        brain: .rules, millis: 0))
                 busy = "Score is elevated: asking the cloud for a Deep Check…"
                 deep = try? await brain.deepCheck(image, trace: &trace) // offline: skip gracefully
             }
 
             let a = Analysis(quick: quick, matchedCat: cat, careNote: note, deep: deep,
-                             trace: trace, alertThreshold: config.grimaceThreshold)
+                             trace: trace, alertThreshold: config.grimaceThreshold, painOffset: config.painOffset)
             repo.saveReading(uid: uid, catId: cat?.id ?? "unknown", analysis: a)
             analysis = a
             busy = nil
@@ -108,7 +108,7 @@ final class AppModel: ObservableObject {
             let fmt = DateFormatter()
             fmt.dateFormat = "EEE d MMM"
             let lines = history.prefix(10).map { r in
-                "\(fmt.string(from: Date(timeIntervalSince1970: r.createdAt / 1000))): mood \(r.mood), grimace \(r.grimaceTotal)/10"
+                "\(fmt.string(from: Date(timeIntervalSince1970: r.createdAt / 1000))): mood \(r.mood), pain \(r.painScore)/10"
                     + (r.signs.isEmpty ? "" : ", signs: \(r.signs.joined(separator: ", "))")
             }
             trend = try await brain.trend(name: cat.name, lines: lines)

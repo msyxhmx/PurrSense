@@ -134,8 +134,8 @@ private fun OnDeviceCard(status: String, onDownload: () -> Unit) {
 
 @Composable
 private fun ResultScreen(photo: Bitmap, a: Analysis, onDone: () -> Unit) {
-    val g = a.deep?.fgs ?: a.quick.fgs
-    val alert = g.total >= a.alertThreshold || a.quick.signs.isNotEmpty()
+    val g = a.grimace
+    val alert = a.painScore >= a.alertThreshold || a.quick.signs.isNotEmpty()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Image(photo.asImageBitmap(), null, Modifier.fillMaxWidth().height(260.dp).clip(RoundedCornerShape(16.dp)),
             contentScale = ContentScale.Crop)
@@ -145,7 +145,7 @@ private fun ResultScreen(photo: Bitmap, a: Analysis, onDone: () -> Unit) {
             style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(12.dp))
 
-        GrimaceCard(g, a.alertThreshold, alert)
+        GrimaceCard(g, a.painScore, a.painOffset, a.alertThreshold, alert)
         if (a.quick.signs.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             Text("Visible signs: " + a.quick.signs.joinToString(), color = Color(0xFFB3261E))
@@ -177,10 +177,14 @@ private fun ResultScreen(photo: Bitmap, a: Analysis, onDone: () -> Unit) {
 }
 
 @Composable
-private fun GrimaceCard(g: Grimace, threshold: Int, alert: Boolean) {
+private fun GrimaceCard(g: Grimace, painScore: Int, offset: Int, threshold: Int, alert: Boolean) {
     Card(colors = CardDefaults.cardColors(containerColor = if (alert) Color(0xFFFDECEA) else Color(0xFFE6F4EA))) {
         Column(Modifier.padding(12.dp).fillMaxWidth()) {
-            Text("Grimace score ${g.total}/10", fontWeight = FontWeight.Bold)
+            Text("Pain score $painScore/10", fontWeight = FontWeight.Bold)
+            if (offset > 0) {
+                Text("Grimace ${g.total}/10 + $offset safety margin: AI models tend to under-score cat pain.",
+                    style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            }
             Text(if (alert) "At or above $threshold: possible pain, consider contacting your vet."
                  else "Below $threshold: no strong pain signs in this photo.",
                 style = MaterialTheme.typography.bodySmall)
@@ -264,7 +268,7 @@ private fun CatDetailScreen(cat: Cat, state: UiState, onBack: () -> Unit) {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(10.dp)) {
                         Text(fmt.format(Date(r.createdAt)), style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                        Text("${r.mood.replaceFirstChar { it.uppercase() }} · grimace ${r.grimaceTotal}/10" +
+                        Text("${r.mood.replaceFirstChar { it.uppercase() }} · pain ${r.painScore}/10" +
                             (r.deepUrgency?.let { " · Deep Check: ${it.replace('_', ' ')}" } ?: ""))
                     }
                 }
