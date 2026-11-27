@@ -51,7 +51,12 @@ firebase/           Firestore rules, Remote Config template
 firebase.json       Firebase CLI config (deploy rules + remote config)
 docs/PROPOSAL.md    Project proposal
 docs/DEVPOST_STORY.md  Devpost "About the project" draft
+docs/file-map.html  Which files are frontend / backend and what each one does
 ```
+
+**File map:** [view the page](https://claude.ai/artifact/MYvr2zXZ4uxw92WThxmr71) (source: [`docs/file-map.html`](docs/file-map.html)). There is no backend server: the backend is Firebase, configured by `firebase/` and `firebase.json`. Each app has a client logic layer (`ai/`, `data/`) and a UI layer (`ui/` on Android, `Views/` on iOS).
+
+> **Frontend design is not finalised.** The current screens are a first working version. Aqil and Ilham will do more research on the frontend design before it is settled, so expect `ui/` and `Views/` to change.
 
 ## Setup
 
