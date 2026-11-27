@@ -4,7 +4,7 @@
 
 Cats are experts at hiding pain. PurrSense lets any owner snap a photo and get, in seconds:
 
-- **Who** it is — recognises which of your registered cats is in the photo
+- **Who** it is — recognises which of your registered cats is in the photo, by comparing on-device image embeddings (Apple Vision feature print on iOS, MediaPipe MobileNet-V3 on Android). These are general-purpose models for now; cats registered before this fall back to text descriptions.
 - **Mood** — positive, neutral or negative (the research found no scientific basis for finer cat mood labels; pain comes from the grimace score)
 - **Pain screening** — a score on the **Feline Grimace Scale** (FGS), a published scale vets use to spot pain in cats: 5 facial "action units" (ears, eyes, muzzle, whiskers, head), each scored 0–2, giving a total out of 10. A score of 4 or more is the published threshold for reassessing pain.
 - **Visible health signs** — eye discharge, squinting, nasal discharge, an unkempt coat…
@@ -22,7 +22,7 @@ Each step runs where it makes the most sense, and the app shows which brain ran 
 |---|---|---|---|
 | 0. Cat check + crop | — | **On-device** (Apple Vision) | Photos without a cat never leave the phone; only the cat crop is uploaded |
 | 1. See: mood + grimace (image) | **Hybrid**: on-device Nano, falls back to cloud | Cloud (Apple's on-device model is text-only) | Daily check-ins are private, instant, free and work offline on Nano phones |
-| 2. Who: identify the cat (text) | **Hybrid**, on-device first | **Hybrid**, on-device first | Matching an appearance description against your cats is a small text task |
+| 2. Who: identify the cat (image embedding) | **On-device** (MediaPipe) | **On-device** (Apple Vision) | Image embeddings identify cats far better than text descriptions (85–89% vs ~54% in the research); text matching remains only for cats registered earlier |
 | 3. Care note (text) | **Hybrid**, on-device first | **Hybrid**, on-device first | Private and free |
 | Escalate? | Rule: `FGS + pain offset ≥ threshold or signs` | same | Explainable; the threshold is tuned in Remote Config |
 | 4. Deep Check (image) | **Cloud** (larger Gemini) | **Cloud** | Only the rare worrying cases use the stronger, paid model |

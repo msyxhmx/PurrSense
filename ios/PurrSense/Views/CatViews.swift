@@ -15,7 +15,7 @@ struct AddCatView: View {
             Section {
                 TextField("Appearance", text: $appearance, axis: .vertical)
             } header: {
-                Text("Appearance (used to recognise them)")
+                Text("Description (coat, markings)")
             } footer: {
                 Text("Tip: add distinctive marks, e.g. \"white left paw, notch in right ear\".")
             }

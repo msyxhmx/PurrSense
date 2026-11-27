@@ -33,6 +33,10 @@ android {
     buildFeatures {
         compose = true
     }
+    androidResources {
+        // MediaPipe memory-maps the model from assets, which needs it stored uncompressed.
+        noCompress += "tflite"
+    }
 }
 
 dependencies {
@@ -49,6 +53,9 @@ dependencies {
     implementation("com.google.firebase:firebase-ai-ondevice:16.0.0-beta08")
     // Debug App Check provider (debug tokens are accepted for the hackathon)
     implementation("com.google.firebase:firebase-appcheck-debug:20.1.0")
+
+    // On-device image embeddings for recognising which cat is in the photo (model in assets/).
+    implementation("com.google.mediapipe:tasks-vision:0.10.35")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")

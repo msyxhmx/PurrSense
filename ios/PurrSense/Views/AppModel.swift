@@ -16,6 +16,8 @@ final class AppModel: ObservableObject {
     @Published var photo: UIImage?
     @Published var analysis: Analysis?
     @Published var suggestedAppearance = ""
+    /// Embedding of the photo on the "add cat" screen, saved with the new cat.
+    private var pendingEmbedding: [Float] = []
     @Published var history: [Reading] = []
     @Published var trend: (String, Brain)?
 
@@ -49,7 +51,7 @@ final class AppModel: ObservableObject {
                 return
             }
             busy = "Who's this?"
-            let cat = try await brain.identify(observed: quick.appearance, cats: cats, trace: &trace)
+            let cat = try await brain.identify(embedding: quick.embedding, observed: quick.appearance, cats: cats, trace: &trace)
 
             busy = "Writing a note…"
             let note = try await brain.careNote(name: cat?.name ?? "your cat", read: quick, trace: &trace)
@@ -85,6 +87,7 @@ final class AppModel: ObservableObject {
                 return
             }
             suggestedAppearance = quick.appearance
+            pendingEmbedding = quick.embedding
             path.append(.addCat)
         } catch {
             self.error = error.localizedDescription
@@ -94,7 +97,9 @@ final class AppModel: ObservableObject {
     func saveCat(name: String, appearance: String) {
         let cat = repo.addCat(uid: uid,
                               name: name.trimmingCharacters(in: .whitespaces),
-                              appearance: appearance.trimmingCharacters(in: .whitespaces))
+                              appearance: appearance.trimmingCharacters(in: .whitespaces),
+                              embedding: pendingEmbedding)
+        pendingEmbedding = []
         cats.append(cat)
         path.removeAll()
     }

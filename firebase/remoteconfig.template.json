@@ -17,6 +17,11 @@
       "defaultValue": { "value": "2" },
       "valueType": "NUMBER",
       "description": "Points (0-5) added to Gemini's grimace total before the alert check. Gemini under-scores FGS pain by about 2.4/10 (Sci Rep 2025). Interim fix until a landmark-based scorer replaces Gemini."
+    },
+    "cat_id_min_similarity": {
+      "defaultValue": { "value": "0.6" },
+      "valueType": "NUMBER",
+      "description": "Minimum cosine similarity (0-1) between photo embeddings for a cat to count as recognised. Placeholder: calibrate on real photos of look-alike cats."
     }
   }
 }

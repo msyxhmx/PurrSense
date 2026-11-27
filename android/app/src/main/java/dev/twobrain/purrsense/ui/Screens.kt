@@ -229,7 +229,7 @@ private fun AddCatScreen(photo: Bitmap, suggested: String, vm: MainViewModel) {
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(name, { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(appearance, { appearance = it }, label = { Text("Appearance (used to recognise them)") },
+        OutlinedTextField(appearance, { appearance = it }, label = { Text("Description (coat, markings)") },
             modifier = Modifier.fillMaxWidth())
         Text("Tip: add distinctive marks, e.g. \"white left paw, notch in right ear\".",
             style = MaterialTheme.typography.bodySmall, color = Color.Gray)

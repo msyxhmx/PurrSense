@@ -9,11 +9,16 @@ enum class Brain { ON_DEVICE, CLOUD, RULES }
 /** One pipeline step result, for the "TwoBrain trace" shown under every reading. */
 data class TraceStep(val step: String, val brain: Brain, val millis: Long)
 
-/** A registered cat. `appearance` is a short text signature used for identification. */
+/**
+ * A registered cat. [embedding] is an image embedding of the enrolment photo, used to recognise
+ * the cat; it is empty for cats registered before photo matching existed, which fall back to
+ * matching the text [appearance].
+ */
 data class Cat(
     val id: String = "",
     val name: String = "",
     val appearance: String = "",
+    val embedding: List<Float> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
 )
 

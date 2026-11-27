@@ -99,17 +99,38 @@ class CatBrain(private val config: AppConfig) {
 
     private fun QuickRead.normalized() = copy(mood = Mood.normalize(mood))
 
-    /** Step 2 "Who": text-only matching of the observed appearance against registered cats. */
-    suspend fun identify(observed: String, cats: List<Cat>, trace: MutableList<TraceStep>): Cat? {
-        if (cats.isEmpty() || observed.isBlank()) return null
+    /**
+     * Step 2 "Who". Photo matching first: compare the photo's on-device embedding with each
+     * enrolled cat's, and accept the best only above `cat_id_min_similarity`. The research found
+     * text descriptions identify cats about 54% of the time versus 85-89% for image embeddings.
+     * Cats registered before photo matching have no embedding and fall back to text matching.
+     */
+    suspend fun identify(
+        embedding: List<Float>?,
+        observed: String,
+        cats: List<Cat>,
+        trace: MutableList<TraceStep>,
+    ): Cat? {
+        if (cats.isEmpty()) return null
+        val enrolled = cats.filter { it.embedding.isNotEmpty() }
+        if (embedding != null && enrolled.isNotEmpty()) {
+            val (best, score) = enrolled.map { it to CatEmbedder.cosine(embedding, it.embedding) }
+                .maxBy { it.second }
+            trace += TraceStep("Who (photo match ${"%.2f".format(score)})", Brain.ON_DEVICE, 0)
+            if (score >= config.catIdMinSimilarity) return best
+            // Every cat has an embedding and none matched well enough: this cat isn't registered.
+            if (enrolled.size == cats.size) return null
+        }
+        val legacy = cats.filter { it.embedding.isEmpty() }
+        if (legacy.isEmpty() || observed.isBlank()) return null
         if (cats.size == 1) {
             trace += TraceStep("Who (single cat)", Brain.RULES, 0)
             return cats.first()
         }
-        val (response, ms) = timed { hybrid.generateContent(Prompts.identify(observed, cats)) }
+        val (response, ms) = timed { hybrid.generateContent(Prompts.identify(observed, legacy)) }
         trace += TraceStep("Who (identify)", response.brain(), ms)
         val match = parse<IdMatch>(response.text) ?: return null
-        return cats.firstOrNull { it.id == match.catId && match.confidence >= 0.5 }
+        return legacy.firstOrNull { it.id == match.catId && match.confidence >= 0.5 }
     }
 
     /** Step 3 "Care": owner-friendly explanation. Text-only, on-device first. */

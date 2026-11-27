@@ -30,6 +30,29 @@ enum CatVision {
         return Result(isCat: true, crop: crop(cg, to: best.boundingBox) ?? image, confidence: conf)
     }
 
+    /// On-device image embedding (Apple Vision feature print) used to recognise which registered cat
+    /// is in the photo. Interim: a general-purpose embedding, not one trained to tell individual cats
+    /// apart, and its accuracy on look-alike cats has not been measured. The research
+    /// (docs/RESEARCH_HANDOFF.md) recommends DINOv2-Small + ArcFace trained on cat faces (85-89%).
+    /// Only this vector is stored, never the photo.
+    static func featurePrint(of image: UIImage) throws -> [Float] {
+        guard let cg = image.normalized().cgImage else { return [] }
+        let request = VNGenerateImageFeaturePrintRequest()
+        try VNImageRequestHandler(cgImage: cg, options: [:]).perform([request])
+        guard let obs = request.results?.first, obs.elementType == .float else { return [] }
+        return obs.data.withUnsafeBytes { Array($0.bindMemory(to: Float.self).prefix(obs.elementCount)) }
+    }
+
+    /// Cosine similarity in [-1, 1]; 0 when the vectors can't be compared.
+    static func cosine(_ a: [Float], _ b: [Float]) -> Double {
+        guard !a.isEmpty, a.count == b.count else { return 0 }
+        var dot = 0.0, na = 0.0, nb = 0.0
+        for i in a.indices {
+            dot += Double(a[i] * b[i]); na += Double(a[i] * a[i]); nb += Double(b[i] * b[i])
+        }
+        return na == 0 || nb == 0 ? 0 : dot / (na.squareRoot() * nb.squareRoot())
+    }
+
     /// Vision bounding boxes are normalized with origin bottom-left; add 15% padding.
     private static func crop(_ cg: CGImage, to box: CGRect) -> UIImage? {
         let w = CGFloat(cg.width), h = CGFloat(cg.height)

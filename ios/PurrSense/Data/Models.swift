@@ -12,10 +12,13 @@ struct TraceStep: Identifiable {
     let millis: Int
 }
 
+/// `embedding` is an image embedding of the enrolment photo, used to recognise the cat. It is empty
+/// for cats registered before photo matching existed, which fall back to matching `appearance` text.
 struct Cat: Identifiable, Hashable {
     var id: String
     var name: String
     var appearance: String
+    var embedding: [Float] = []
     var createdAt: Double = Date().timeIntervalSince1970 * 1000
 }
 
@@ -68,6 +71,8 @@ struct QuickRead: Decodable {
     var moodConfidence = 0.0
     var fgs = Grimace()
     var signs: [String] = []
+    /// On-device embedding of the cat crop; not part of the model's JSON.
+    var embedding: [Float] = []
 
     init() {}
     init(from decoder: Decoder) throws {
@@ -142,4 +147,7 @@ struct AppConfig {
     var grimaceThreshold = 4
     /// Points added to Gemini's grimace total before the alert check (interim fix).
     var painOffset = 2
+    /// Minimum cosine similarity for a photo match; below it the cat counts as unknown.
+    /// Placeholder: calibrate on real photos of look-alike cats.
+    var catIdMinSimilarity = 0.6
 }
