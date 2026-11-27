@@ -1,0 +1,284 @@
+<title>PurrSense Algorithm Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column of a vet-style case review; study "charts" sit in a 3-up grid that stacks on phones */
+:root{
+  --bg:#f6f8f7; --surface:#ffffff; --ink:#18231f; --muted:#5b6a64; --line:#d9e2de;
+  --accent:#16786a; --accent-soft:#e1f1ed;
+  --good:#1f7a4a; --good-soft:#e2f3e8; --warn:#a8650c; --warn-soft:#fbefd9; --bad:#b23a3a; --bad-soft:#f8e3e1;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101614; --surface:#18201d; --ink:#e6eeea; --muted:#9aaba4; --line:#2b3733;
+  --accent:#4cc3ad; --accent-soft:#163a33;
+  --good:#5fcf8e; --good-soft:#173527; --warn:#e9a84a; --warn-soft:#3a2b14; --bad:#ef7d74; --bad-soft:#3d1d1b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101614; --surface:#18201d; --ink:#e6eeea; --muted:#9aaba4; --line:#2b3733;
+  --accent:#4cc3ad; --accent-soft:#163a33;
+  --good:#5fcf8e; --good-soft:#173527; --warn:#e9a84a; --warn-soft:#3a2b14; --bad:#ef7d74; --bad-soft:#3d1d1b; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.wrap{max-width:1060px;margin:0 auto;padding-block:48px 72px;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.6rem;font-weight:700}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0;max-width:68ch}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+section{display:flex;flex-direction:column;gap:18px}
+.lede{font-size:1.15rem;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* hero */
+header{display:flex;flex-direction:column;gap:16px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:.85rem;color:var(--muted)}
+
+/* verdict strip */
+.verdict{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.verdict > div{background:var(--surface);padding:18px 20px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.verdict .step{font-weight:600}
+.verdict p{font-size:.92rem;color:var(--muted)}
+.meter{display:flex;gap:4px}
+.meter i{height:6px;flex:1;border-radius:3px;background:var(--line)}
+.lvl-3 .meter i{background:var(--good)}
+.lvl-2 .meter i:nth-child(-n+2){background:var(--warn)}
+.lvl-1 .meter i:first-child{background:var(--bad)}
+.lvl-label{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
+.lvl-3 .lvl-label{color:var(--good)} .lvl-2 .lvl-label{color:var(--warn)} .lvl-1 .lvl-label{color:var(--bad)}
+
+/* study cards */
+.studies{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.study{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.study .tag{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chip{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.chip.high{background:var(--good-soft);color:var(--good)}
+.chip.mod{background:var(--warn-soft);color:var(--warn)}
+.chip.step{background:var(--accent-soft);color:var(--accent)}
+.cite{font-size:.85rem;color:var(--muted)}
+.big{display:flex;flex-direction:column;gap:2px;padding:12px 0;border-block:1px solid var(--line)}
+.big b{font-family:var(--f-display);font-size:2.2rem;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.big span{font-size:.85rem;color:var(--muted)}
+dl{margin:0;display:grid;gap:10px}
+dt{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+dd{margin:2px 0 0;font-size:.92rem}
+.why{font-size:.88rem;background:var(--bg);border-radius:8px;padding:12px 14px}
+.why strong{display:block;margin-bottom:4px}
+
+/* charts */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.scale-wrap{overflow-x:auto}
+svg text{fill:var(--muted);font-family:var(--f-mono);font-size:11px}
+svg .lbl{fill:var(--ink);font-family:var(--f-body);font-size:12.5px;font-weight:600}
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar{display:grid;grid-template-columns:minmax(0,11rem) minmax(0,1fr) 3.4rem;gap:10px;align-items:center;font-size:.88rem}
+.bar .track{height:14px;background:var(--bg);border-radius:4px;overflow:hidden}
+.bar .fill{height:100%;background:var(--accent);border-radius:4px}
+.bar.weak .fill{background:var(--bad)}
+.bar .v{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.note{font-size:.8rem;color:var(--muted)}
+
+/* mood table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.92rem}
+th,td{text-align:left;padding:11px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--good-soft);color:var(--good)}
+.pill.part{background:var(--warn-soft);color:var(--warn)}
+.pill.no{background:var(--bad-soft);color:var(--bad)}
+
+/* pipeline */
+.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;list-style:none;margin:0;padding:0;counter-reset:s}
+.pipe li{counter-increment:s;background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pipe li::before{content:"Step " counter(s);font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.pipe p{font-size:.86rem;color:var(--muted)}
+.llm{border:1px dashed var(--line);border-radius:10px;padding:16px 18px;font-size:.92rem;display:flex;flex-direction:column;gap:6px}
+
+ul.plain{margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:8px;max-width:72ch}
+.sources{font-size:.85rem;columns:2;column-gap:32px}
+.sources li{break-inside:avoid;margin-bottom:6px}
+
+@media (max-width:860px){
+  .studies,.verdict,.two{grid-template-columns:minmax(0,1fr)}
+  .pipe{grid-template-columns:minmax(0,1fr)}
+  .sources{columns:1}
+}
+@media (max-width:480px){.bar{grid-template-columns:minmax(0,7.5rem) minmax(0,1fr) 3rem}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Research review · PurrSense · 26 Nov 2026</span>
+  <h1>Which algorithms should PurrSense use for cat ID, mood and pain?</h1>
+  <p class="lede">For all three steps, the evidence favours small vision models built for cats over prompting Gemini. The best evidence comes from three peer-reviewed studies, one for each step. The evidence is strong for identification, moderate for pain and weak for mood.</p>
+  <div class="meta"><span>Sources: 3 research tracks, about 20 papers</span><span>Full report: <span class="mono">reports/Cat face analysis algorithms.md</span></span></div>
+</header>
+
+<section aria-labelledby="v">
+  <h2 id="v">How strong the evidence is for each step</h2>
+  <div class="verdict">
+    <div class="lvl-3"><span class="step">Who: identify the cat</span><div class="meter"><i></i><i></i><i></i></div><span class="lvl-label">Strong</span><p>Image embeddings clearly beat text descriptions. Telling apart 2 to 10 household cats is easier than any published benchmark.</p></div>
+    <div class="lvl-2"><span class="step">Pain: Feline Grimace Scale</span><div class="meter"><i></i><i></i><i></i></div><span class="lvl-label">Moderate</span><p>The scale is well validated. Automated scoring works, but no other group has replicated it and it has never been tested on photos owners take.</p></div>
+    <div class="lvl-1"><span class="step">Mood</span><div class="meter"><i></i><i></i><i></i></div><span class="lvl-label">Weak</span><p>No validated classifier exists for several cat moods. The only reliable results are for two classes.</p></div>
+  </div>
+</section>
+
+<section aria-labelledby="s">
+  <span class="eyebrow">The three studies</span>
+  <h2 id="s">Three reputable studies with the most reliable results</h2>
+  <p>I picked one study per app step. Each confidence rating is based on how the study was designed, not on the journal it appeared in.</p>
+  <div class="studies">
+
+    <article class="study">
+      <div class="tag"><span class="chip step">Identification</span><span class="chip high">High confidence</span></div>
+      <h3>PetFace: a large-scale dataset and benchmark for animal identification</h3>
+      <span class="cite">Shinoda &amp; Shiohara · ECCV 2024 (oral) · <a href="https://arxiv.org/abs/2407.13555">arXiv 2407.13555</a></span>
+      <div class="big"><b>98.0%</b><span>AUC for verifying cats the model has never seen (ArcFace). CLIP scored 85.1% and MegaDescriptor 87.3%.</span></div>
+      <dl>
+        <div><dt>Method</dt><dd>A ResNet-50 that turns each face into an embedding, trained with ArcFace metric learning. It was compared with softmax, triplet and center losses, and with CLIP and MegaDescriptor.</dd></div>
+        <div><dt>Data</dt><dd>About 1M images of about 257k individuals from 13 animal families. Cats were tested on both known individuals and unseen ones.</dd></div>
+      </dl>
+      <div class="why"><strong>Why I trust it</strong>It was an oral paper at a top computer-vision conference and its dataset is far larger than any other. It tests the case PurrSense needs: is this one of my cats or a stranger? A 2026 study of 518 cats agrees with it. <em>Caveat:</em> the data and model weights are licensed for research use only.</div>
+    </article>
+
+    <article class="study">
+      <div class="tag"><span class="chip step">Pain (FGS)</span><span class="chip mod">Moderate confidence</span></div>
+      <h3>Fully automated deep learning models with smartphone applicability for pain prediction using the Feline Grimace Scale</h3>
+      <span class="cite">Steagall, Monteiro et al. · <i>Scientific Reports</i> 13:21584 (2023) · <a href="https://doi.org/10.1038/s41598-023-49031-2">10.1038/s41598-023-49031-2</a></span>
+      <div class="big"><b>95.5%</b><span>accuracy for pain vs no pain, AUROC 0.97. Per-unit error was lowest for ears and eyes and highest for muzzle and whiskers.</span></div>
+      <dl>
+        <div><dt>Method</dt><dd>A phone-sized network (ShuffleNetV2, 6M parameters, 0.05 s per image) places 37 landmarks. 35 geometric measurements then feed one XGBoost model per action unit.</dd></div>
+        <div><dt>Data</dt><dd>3,447 images marked with landmarks, and 1,188 frames scored on the FGS from 6 clinical trials.</dd></div>
+      </dl>
+      <div class="why"><strong>Why I rate it only moderate</strong>The group that created the FGS wrote it, and it is the only automated system that outputs all five FGS action units. But the test set was just 100 images, and the same cat could appear in both training and test data. Studies that test on cats the model has never seen score 66–78%.</div>
+    </article>
+
+    <article class="study">
+      <div class="tag"><span class="chip step">Mood</span><span class="chip high">High confidence</span></div>
+      <h3>Investigating the capabilities of large vision language models in dog emotion recognition</h3>
+      <span class="cite">Martvel, Zamansky, Shimshoni, Bremhorst · <i>Scientific Reports</i> 15:41250 (2025) · <a href="https://doi.org/10.1038/s41598-025-25199-7">10.1038/s41598-025-25199-7</a></span>
+      <div class="big"><b>≤ 0.6</b><span>best accuracy among 11 general vision-language models, three of them Gemini versions. A specialised vision model reached 89% on the same images.</span></div>
+      <dl>
+        <div><dt>Method</dt><dd>11 models with no task-specific training (GPT-4o/4.1, o4-mini, Gemini 1.5 Pro, 1.5 Flash and 2.0 Flash, LLaVA-NeXT), compared with a DINO-ViT classifier.</dd></div>
+        <div><dt>Data</dt><dd>Dog faces labelled by the situation they were filmed in (waiting for a treat vs frustrated), plus a set of web images labelled by people.</dd></div>
+      </dl>
+      <div class="why"><strong>Why it applies to PurrSense</strong>It tests the same family of models PurrSense uses, on labels that come from the situation rather than from someone judging the face. Most models gave nearly every image the same label, and changing the background changed their answers. <em>Caveat:</em> the subjects are dogs, because no one has published this kind of test on cats.</div>
+    </article>
+
+  </div>
+</section>
+
+<section aria-labelledby="g">
+  <span class="eyebrow">Supporting evidence</span>
+  <h2 id="g">What this means for the current Gemini approach</h2>
+  <div class="two">
+    <div class="panel">
+      <h3>Gemini scores pain too low</h3>
+      <p class="note">Ngai et al., <i>Sci Rep</i> 15:43461 (2025). Four chatbots scored 50 clinical cat photos and every one underestimated pain. Gemini 1.5 Pro was furthest off, about 0.22–0.25 low on the 0–1 scale, and further off as pain increased.</p>
+      <div class="scale-wrap">
+        <svg viewBox="0 0 440 128" width="100%" role="img" aria-label="Pain scale from 0 to 10 with the alert at 4. A cat truly at 5 shifted down by about 2.4 points lands near 2.6, below the alert.">
+          <rect x="20" y="58" width="400" height="10" rx="5" fill="var(--line)"/>
+          <rect x="180" y="58" width="240" height="10" rx="5" fill="var(--bad-soft)"/>
+          <line x1="180" y1="44" x2="180" y2="82" stroke="var(--bad)" stroke-width="2" stroke-dasharray="3 3"/>
+          <text x="180" y="38" text-anchor="middle" style="fill:var(--bad)">alert ≥ 4</text>
+          <g>
+            <text x="20" y="98" text-anchor="middle">0</text><text x="100" y="98" text-anchor="middle">2</text><text x="180" y="98" text-anchor="middle">4</text>
+            <text x="260" y="98" text-anchor="middle">6</text><text x="340" y="98" text-anchor="middle">8</text><text x="420" y="98" text-anchor="middle">10</text>
+          </g>
+          <circle cx="220" cy="63" r="8" fill="var(--accent)"/>
+          <text x="220" y="20" text-anchor="middle" class="lbl">True score 5</text>
+          <line x1="212" y1="63" x2="132" y2="63" stroke="var(--ink)" stroke-width="1.5" marker-end="url(#ah)"/>
+          <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--ink)"/></marker></defs>
+          <circle cx="124" cy="63" r="8" fill="var(--surface)" stroke="var(--bad)" stroke-width="2.5"/>
+          <text x="124" y="122" text-anchor="middle" class="lbl">Gemini ≈ 2.6 · no alert</text>
+        </svg>
+      </div>
+      <p class="note">Illustration only: the study's average bias applied to one cat. The study used model versions from April 2024 and has not tested Gemini Nano. The ≥4 threshold itself is sound: the published cutoff catches 90.7% of cats in pain (sensitivity) with 86.6% specificity.</p>
+    </div>
+    <div class="panel">
+      <h3>Text descriptions are a poor way to tell cats apart</h3>
+      <p class="note">Top-1 accuracy at identifying 518 cats (Kudryavtsev et al., CVPR 2026 workshop, <a href="https://arxiv.org/abs/2603.02270">arXiv 2603.02270</a>).</p>
+      <div class="bars">
+        <div class="bar"><span>SigLIP2-Giant embeddings</span><div class="track"><div class="fill" style="width:89%"></div></div><span class="v">89.0%</span></div>
+        <div class="bar"><span>MiewID embeddings</span><div class="track"><div class="fill" style="width:87.2%"></div></div><span class="v">87.2%</span></div>
+        <div class="bar"><span>DINOv2-Small embeddings</span><div class="track"><div class="fill" style="width:85.5%"></div></div><span class="v">85.5%</span></div>
+        <div class="bar"><span>MegaDescriptor-L</span><div class="track"><div class="fill" style="width:84.2%"></div></div><span class="v">84.2%</span></div>
+        <div class="bar weak"><span>Text descriptions written by an AI model (current approach)</span><div class="track"><div class="fill" style="width:54%"></div></div><span class="v">~54%</span></div>
+      </div>
+      <p class="note">On pairs of very similar-looking animals, 17 of 18 vision-language models did worse than a coin flip at answering "is this the same animal?" (Bio-VQA, accepted to WACV 2027). Two black littermates are exactly the case where matching text descriptions fails.</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="m">
+  <h2 id="m">How PurrSense's eight mood labels compare with the science</h2>
+  <p>Studies that code cat facial movements with CatFACS find only three emotion clusters: relaxed engagement, fear and frustration. Untrained people tell positive from negative cat faces only 59% of the time (Dawson et al. 2019, 6,329 participants).</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>App label</th><th>Fit</th><th>What the literature says</th></tr></thead>
+      <tbody>
+        <tr><td>relaxed</td><td><span class="pill ok">Defensible</span></td><td>Matches the "relaxed engagement" cluster.</td></tr>
+        <tr><td>irritated</td><td><span class="pill part">Partly</span></td><td>The scientific term is frustration. Only a binary classifier exists, and only for dogs.</td></tr>
+        <tr><td>fearful · anxious</td><td><span class="pill part">Partly</span></td><td>Fear is a real cluster, but faces don't separate fear from anxiety. Merge them.</td></tr>
+        <tr><td>uncomfortable</td><td><span class="pill part">Move</span></td><td>This is really pain and belongs to the FGS step.</td></tr>
+        <tr><td>alert · sleepy</td><td><span class="pill no">Weak</span></td><td>These are levels of arousal, not emotions. No facial classifier exists.</td></tr>
+        <tr><td>playful</td><td><span class="pill no">Weak</span></td><td>Depends on body and context. No facial evidence.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Recommendation:</strong> report positive / neutral / negative plus an arousal cue, and take any pain flag from the FGS. Show specific labels only as low-confidence suggestions.</p>
+</section>
+
+<section aria-labelledby="p">
+  <span class="eyebrow">Recommendation</span>
+  <h2 id="p">Proposed pipeline, all on the phone</h2>
+  <p>One shared face front end feeds three small heads. Every stage has a model that is mobile-sized.</p>
+  <ol class="pipe">
+    <li><h3>Detect and check quality</h3><p>A small YOLO-class cat-face detector (or Apple Vision on iOS). Ask for a retake if the face isn't frontal or the detector is unsure.</p></li>
+    <li><h3>Landmarks</h3><p>A detector trained on CatFLW (48 points). The MobileNetV2 version's error (NME) is 3.09, against 2.83 for the best model. This is the bottleneck: automatic landmarks cost about 7 points of pain accuracy compared with hand-placed ones.</p></li>
+    <li><h3>Pain score</h3><p>Geometric measurements feed one small classifier per action unit, summed to a score out of 10 with the ≥4 alert. The app can explain the score ("ears rotated, eyes narrowed").</p></li>
+    <li><h3>Identify</h3><p>A face embedding trained with ArcFace, compared by cosine similarity with 3–10 enrolment photos per cat. A threshold rejects cats that aren't registered.</p></li>
+    <li><h3>Mood</h3><p>A positive / neutral / negative classifier on the same landmarks. Present its output as low-confidence.</p></li>
+  </ol>
+  <div class="llm"><strong>Gemini's new role: explain, don't score</strong>Use it to write results in friendly language, check photo quality and break ties between two similar cats. It should never set the pain score or the identity. If it keeps scoring pain for now, add about 2 points to its total before comparing with the alert threshold, to correct for its under-scoring.</div>
+</section>
+
+<section aria-labelledby="r">
+  <h2 id="r">Open risks before shipping</h2>
+  <ul class="plain">
+    <li><strong>Licensing.</strong> PetFace data and weights are licensed for research only, and MegaDescriptor is non-commercial (CC BY-NC). A commercial identification model needs training data that is safe to use commercially.</li>
+    <li><strong>Training data.</strong> No trained FGS models are public. Working with the Steagall group (1,188 photos scored on the FGS) or the Haifa group (CatFLW and its pain pipelines) is the fastest route to data.</li>
+    <li><strong>Validation.</strong> No study has validated the FGS on photos owners take at home. PurrSense needs its own study, with vets' FGS scores as ground truth and no cat in both training and test data, before it claims any accuracy.</li>
+    <li><strong>Replication.</strong> One lab (Haifa) produced almost all of the automated cat-face work, and no one else has replicated it.</li>
+  </ul>
+</section>
+
+<section aria-labelledby="src">
+  <h2 id="src">Key sources</h2>
+  <ul class="sources">
+    <li>Shinoda &amp; Shiohara, PetFace, ECCV 2024. <a href="https://arxiv.org/abs/2407.13555">arXiv 2407.13555</a></li>
+    <li>Steagall et al., <i>Sci Rep</i> 2023. <a href="https://doi.org/10.1038/s41598-023-49031-2">doi</a></li>
+    <li>Martvel et al., <i>Sci Rep</i> 2025 (dog emotion vision-language models). <a href="https://doi.org/10.1038/s41598-025-25199-7">doi</a></li>
+    <li>Ngai et al., <i>Sci Rep</i> 2025 (chatbots scoring the FGS). <a href="https://doi.org/10.1038/s41598-025-27404-z">doi</a></li>
+    <li>Evangelista et al., <i>Sci Rep</i> 2019 (FGS validation). <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6911058">PMC</a></li>
+    <li>Feighelstein et al., <i>Sci Rep</i> 2023 (explainable pain recognition). <a href="https://doi.org/10.1038/s41598-023-35846-6">doi</a></li>
+    <li>Martvel et al., <i>Front Vet Sci</i> 2024 (automatic vs hand-placed landmarks). <a href="https://doi.org/10.3389/fvets.2024.1442634">doi</a></li>
+    <li>Martvel, Shimshoni &amp; Zamansky, CatFLW / ELD, IJCV 2024. <a href="https://doi.org/10.1007/s11263-024-02006-w">doi</a></li>
+    <li>Kudryavtsev et al., cat re-identification, CVPR 2026 workshop. <a href="https://arxiv.org/abs/2603.02270">arXiv 2603.02270</a></li>
+    <li>Martvel et al., <i>Sci Rep</i> 2024 (cat social signals). <a href="https://doi.org/10.1038/s41598-024-79216-2">doi</a></li>
+    <li>Bennett, Gourkow &amp; Mills, <i>Behav Processes</i> 2017. <a href="https://pubmed.ncbi.nlm.nih.gov/28341145/">PubMed</a></li>
+    <li>Dawson et al., <i>Animal Welfare</i> 2019 (how well people read cat faces)</li>
+  </ul>
+</section>
+
+</div>

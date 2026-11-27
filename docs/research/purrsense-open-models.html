@@ -1,0 +1,250 @@
+<title>PurrSense Open Model Picks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column of a vet-style case review; study "charts" sit in a 3-up grid that stacks on phones */
+:root{
+  --bg:#f6f8f7; --surface:#ffffff; --ink:#18231f; --muted:#5b6a64; --line:#d9e2de;
+  --accent:#16786a; --accent-soft:#e1f1ed;
+  --good:#1f7a4a; --good-soft:#e2f3e8; --warn:#a8650c; --warn-soft:#fbefd9; --bad:#b23a3a; --bad-soft:#f8e3e1;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101614; --surface:#18201d; --ink:#e6eeea; --muted:#9aaba4; --line:#2b3733;
+  --accent:#4cc3ad; --accent-soft:#163a33;
+  --good:#5fcf8e; --good-soft:#173527; --warn:#e9a84a; --warn-soft:#3a2b14; --bad:#ef7d74; --bad-soft:#3d1d1b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101614; --surface:#18201d; --ink:#e6eeea; --muted:#9aaba4; --line:#2b3733;
+  --accent:#4cc3ad; --accent-soft:#163a33;
+  --good:#5fcf8e; --good-soft:#173527; --warn:#e9a84a; --warn-soft:#3a2b14; --bad:#ef7d74; --bad-soft:#3d1d1b; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.wrap{max-width:1060px;margin:0 auto;padding-block:48px 72px;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.6rem;font-weight:700}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0;max-width:68ch}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+section{display:flex;flex-direction:column;gap:18px}
+.lede{font-size:1.15rem;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* hero */
+header{display:flex;flex-direction:column;gap:16px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:.85rem;color:var(--muted)}
+
+/* verdict strip */
+.verdict{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.verdict > div{background:var(--surface);padding:18px 20px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.verdict .step{font-weight:600}
+.verdict p{font-size:.92rem;color:var(--muted)}
+.meter{display:flex;gap:4px}
+.meter i{height:6px;flex:1;border-radius:3px;background:var(--line)}
+.lvl-3 .meter i{background:var(--good)}
+.lvl-2 .meter i:nth-child(-n+2){background:var(--warn)}
+.lvl-1 .meter i:first-child{background:var(--bad)}
+.lvl-label{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
+.lvl-3 .lvl-label{color:var(--good)} .lvl-2 .lvl-label{color:var(--warn)} .lvl-1 .lvl-label{color:var(--bad)}
+
+/* study cards */
+.studies{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.study{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.study .tag{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chip{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.chip.high{background:var(--good-soft);color:var(--good)}
+.chip.mod{background:var(--warn-soft);color:var(--warn)}
+.chip.step{background:var(--accent-soft);color:var(--accent)}
+.cite{font-size:.85rem;color:var(--muted)}
+.big{display:flex;flex-direction:column;gap:2px;padding:12px 0;border-block:1px solid var(--line)}
+.big b{font-family:var(--f-display);font-size:2.2rem;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.big span{font-size:.85rem;color:var(--muted)}
+dl{margin:0;display:grid;gap:10px}
+dt{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+dd{margin:2px 0 0;font-size:.92rem}
+.why{font-size:.88rem;background:var(--bg);border-radius:8px;padding:12px 14px}
+.why strong{display:block;margin-bottom:4px}
+
+/* charts */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.scale-wrap{overflow-x:auto}
+svg text{fill:var(--muted);font-family:var(--f-mono);font-size:11px}
+svg .lbl{fill:var(--ink);font-family:var(--f-body);font-size:12.5px;font-weight:600}
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar{display:grid;grid-template-columns:minmax(0,11rem) minmax(0,1fr) 3.4rem;gap:10px;align-items:center;font-size:.88rem}
+.bar .track{height:14px;background:var(--bg);border-radius:4px;overflow:hidden}
+.bar .fill{height:100%;background:var(--accent);border-radius:4px}
+.bar.weak .fill{background:var(--bad)}
+.bar .v{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.note{font-size:.8rem;color:var(--muted)}
+
+/* mood table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.92rem}
+th,td{text-align:left;padding:11px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--good-soft);color:var(--good)}
+.pill.part{background:var(--warn-soft);color:var(--warn)}
+.pill.no{background:var(--bad-soft);color:var(--bad)}
+
+/* pipeline */
+.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;list-style:none;margin:0;padding:0;counter-reset:s}
+.pipe li{counter-increment:s;background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pipe li::before{content:"Step " counter(s);font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.pipe p{font-size:.86rem;color:var(--muted)}
+.llm{border:1px dashed var(--line);border-radius:10px;padding:16px 18px;font-size:.92rem;display:flex;flex-direction:column;gap:6px}
+
+ul.plain{margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:8px;max-width:72ch}
+.sources{font-size:.85rem;columns:2;column-gap:32px}
+.sources li{break-inside:avoid;margin-bottom:6px}
+
+@media (max-width:860px){
+  .studies,.verdict,.two{grid-template-columns:minmax(0,1fr)}
+  .pipe{grid-template-columns:minmax(0,1fr)}
+  .sources{columns:1}
+}
+@media (max-width:480px){.bar{grid-template-columns:minmax(0,7.5rem) minmax(0,1fr) 3rem}}
+
+.sub{display:block;font-size:.8rem;color:var(--muted);margin-top:2px}
+.tbl td .pill{margin-top:4px}
+table{min-width:860px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stats div{background:var(--bg);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stats b{font-family:var(--f-display);font-size:1.7rem;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.stats span{font-size:.8rem;color:var(--muted)}
+.lvl-2 .meter i:nth-child(-n+2){background:var(--warn)}
+.pipe.needs li::before{content:none}
+@media (max-width:480px){.stats{grid-template-columns:minmax(0,1fr)}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Research review 2 · PurrSense · 26 Nov 2026</span>
+  <h1>The best open-source models for PurrSense</h1>
+  <p class="lede">Free, commercially usable open models cover detection, cat identification, breed and the on-phone explainer. Nothing open exists for pain or mood. Every good model or dataset built specifically for cat faces is non-commercial or has no licence, so labelled data and licences decide what we can ship, more than model accuracy does.</p>
+  <div class="meta"><span>Builds on: Cat face analysis algorithms</span><span>Full report: <span class="mono">reports/Open source models for PurrSense.md</span></span></div>
+</header>
+
+<section aria-labelledby="v">
+  <h2 id="v">Can we ship it with open models?</h2>
+  <div class="verdict">
+    <div class="lvl-3"><span class="step">Ready to use</span><div class="meter"><i></i><i></i><i></i></div><span class="lvl-label">Detection · ID · breed · explainer</span><p>Apache-2.0 or MIT models exist. We still have to fine-tune them and convert them to run on the phone.</p></div>
+    <div class="lvl-2"><span class="step">Blocked by licence</span><div class="meter"><i></i><i></i><i></i></div><span class="lvl-label">Facial landmarks</span><p>A ready-made phone model exists, but it's non-commercial because CatFLW is. We have to license the data or label our own photos.</p></div>
+    <div class="lvl-1"><span class="step">Nothing exists</span><div class="meter"><i></i><i></i><i></i></div><span class="lvl-label">Pain · mood</span><p>No public grimace-scale models or data, and no credible cat mood classifier. We have to build both.</p></div>
+  </div>
+</section>
+
+<section aria-labelledby="t">
+  <span class="eyebrow">The picks</span>
+  <h2 id="t">Best open model for each job</h2>
+  <p>"Ship" means the model's own licence allows commercial use. Its training data hasn't been audited.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Job</th><th>Best pick (ship)</th><th>Runner-up</th><th>Prototype only</th><th>Avoid</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Find the face</strong></td><td>D-FINE-N/S <span class="pill ok">Apache-2.0</span><br><span class="sub">4–10M parameters, 42.8–48.5 COCO AP</span></td><td>RF-DETR-Nano <span class="pill ok">Apache-2.0</span></td><td>cat_face_localizer <span class="pill part">CC BY-NC</span></td><td>Ultralytics YOLO <span class="pill no">AGPL</span>, YOLOv9 <span class="pill no">GPL</span></td></tr>
+        <tr><td><strong>48 facial landmarks</strong></td><td>RTMPose, trained on data we own or license <span class="pill ok">Apache-2.0*</span></td><td>ViTPose++-S <span class="pill ok">Apache-2.0</span></td><td>cat-face-landmarks TFLite, 11 MB, NME 3.48 <span class="pill part">CC BY-NC</span></td><td>SuperAnimal <span class="pill no">Academic only</span></td></tr>
+        <tr><td><strong>Which cat is it</strong></td><td>DINOv2-Small + ArcFace <span class="pill ok">Apache-2.0</span><br><span class="sub">22M parameters, 85.5% top-1 on 518 cats</span></td><td>SigLIP2-B <span class="pill ok">Apache-2.0</span><br><span class="sub">86.6%, about 4x larger</span></td><td>PetFace cat.pt <span class="pill part">Research only</span>, MegaDescriptor <span class="pill part">CC BY-NC</span></td><td>MiewID <span class="pill no">No licence</span>, MobileCLIP <span class="pill no">Research-only weights</span></td></tr>
+        <tr><td><strong>Breed, and "is it a cat?"</strong></td><td>BioCLIP 2, scaled down into a small model <span class="pill ok">MIT</span></td><td>dima806 breed ViT <span class="pill ok">Apache-2.0</span><br><span class="sub">trained on scraped images</span></td><td>cat_detection breed <span class="pill part">CC BY-NC</span></td><td></td></tr>
+        <tr><td><strong>Pain (grimace scale)</strong></td><td>Build our own: landmarks, then geometric measurements, then XGBoost per grimace unit</td><td>None exists</td><td>None public</td><td></td></tr>
+        <tr><td><strong>Mood</strong></td><td>Build our own: positive / neutral / negative classifier on the landmarks</td><td>None credible</td><td>semihdervis classifier, 63.5% on labels of unknown origin</td><td></td></tr>
+        <tr><td><strong>Explainer (on-phone AI)</strong></td><td>Gemma 4 E2B on LiteRT-LM <span class="pill ok">Apache-2.0</span><br><span class="sub">2.58 GB, 0.3 s to first word on Android and iOS</span></td><td>Qwen3-VL-2B / Qwen3.5-2B <span class="pill ok">Apache-2.0*</span></td><td>Catellect / Scalpel-VL <span class="pill part">Unclear licence</span></td><td>FastVLM, Moondream <span class="pill no">Need legal review</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">* Licence taken from documentation or snippets but not checked against the model's own LICENSE file.</p>
+</section>
+
+<section aria-labelledby="e">
+  <span class="eyebrow">Key evidence</span>
+  <h2 id="e">Why these picks</h2>
+  <div class="two">
+    <div class="panel">
+      <h3>General open models nearly match cat specialists at telling cats apart</h3>
+      <p class="note">Top-1 accuracy identifying 518 cats (Kudryavtsev et al., <a href="https://arxiv.org/abs/2603.02270">arXiv 2603.02270</a>). All three are Apache-2.0.</p>
+      <div class="bars">
+        <div class="bar"><span>SigLIP2-Giant (too big for phones, but can train a smaller model)</span><div class="track"><div class="fill" style="width:89%"></div></div><span class="v">89.0%</span></div>
+        <div class="bar"><span>SigLIP2-B</span><div class="track"><div class="fill" style="width:86.6%"></div></div><span class="v">86.6%</span></div>
+        <div class="bar"><span>DINOv2-Small (our pick, 22M)</span><div class="track"><div class="fill" style="width:85.5%"></div></div><span class="v">85.5%</span></div>
+        <div class="bar weak"><span>AI-written text descriptions</span><div class="track"><div class="fill" style="width:54%"></div></div><span class="v">~54%</span></div>
+      </div>
+      <p class="note">PurrSense only has to choose among 2 to 10 registered cats, which is easier than 518. Treat these numbers as a floor.</p>
+    </div>
+    <div class="panel">
+      <h3>Gemma 4 E2B is the only explainer with official phone speed figures</h3>
+      <p class="note">Google's LiteRT-LM figures, measured on 2026 flagship phone GPUs.</p>
+      <div class="stats">
+        <div><b>0.3 s</b><span>to first word, S26 Ultra and iPhone 17 Pro</span></div>
+        <div><b>52–56</b><span>words per second (tokens/s)</span></div>
+        <div><b>2.58 GB</b><span>model file, probably downloaded on demand</span></div>
+      </div>
+      <p class="note">Gemma 4 is now Apache-2.0; Gemma 3, 3n and PaliGemma 2 had more restrictive terms. It runs alongside Firebase AI Logic, not inside it. Its role stays the same: explain results, never score them. The untuned Qwen3-VL-2B read cat facial features correctly only about 26% of the time.</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="l">
+  <h2 id="l">Licence traps</h2>
+  <ul class="plain">
+    <li><strong>Ultralytics YOLO:</strong> its AGPL-3.0 licence covers models you train yourself too. A closed-source app needs a paid Enterprise licence.</li>
+    <li><strong>CatFLW and anything trained on it</strong> is CC BY-NC 4.0, including the new phone-ready landmark model. The earlier plan to "train landmarks on CatFLW" only works commercially with a licence from the Tech4Animals Lab at the University of Haifa.</li>
+    <li><strong>RF-DETR's smallest sizes</strong> (Atto, Femto, Pico) use Roboflow's own licence, which charges for commercial self-hosting.</li>
+    <li><strong>Start D-FINE from its COCO-only weights.</strong> Its Objects365-pretrained weights may carry that dataset's terms.</li>
+    <li><strong>DINOv3</strong> allows commercial use but requires a visible "Built with DINOv3" notice.</li>
+    <li><strong>Oxford-IIIT Pet</strong> is CC BY-SA (ShareAlike). Ask counsel whether that clause applies to trained weights.</li>
+  </ul>
+</section>
+
+<section aria-labelledby="b">
+  <span class="eyebrow">Our work</span>
+  <h2 id="b">What PurrSense has to provide itself</h2>
+  <ol class="pipe needs">
+    <li><h3>Landmark data</h3><p>48-point cat-face labels, licensed from Haifa or annotated in-house. This determines the timeline.</p></li>
+    <li><h3>Pain data</h3><p>Owner photos scored by vets on the grimace scale, with no cat in both training and test data. Requesting Steagall's 1,188 scored images is the fastest start.</p></li>
+    <li><h3>Mood data</h3><p>Positive/negative labels that come from the situation the cat was in, not from someone judging its face.</p></li>
+    <li><h3>ID photos</h3><p>Consented photos from our own users to fine-tune the ArcFace head.</p></li>
+    <li><h3>Conversions</h3><p>LiteRT and Core ML exports. The transformer-based detector (D-FINE) and ViT backbones carry the most risk.</p></li>
+  </ol>
+  <div class="llm"><strong>Suggested order</strong>Prototype the whole pipeline now with the non-commercial landmark model and Steagall's published pain method, and measure accuracy on owner photos against vet scores. Then decide whether to license CatFLW or annotate our own, because that's where most of the cost is.</div>
+</section>
+
+<section aria-labelledby="g">
+  <h2 id="g">Gaps in the evidence</h2>
+  <ul class="plain">
+    <li>No phone speed figures for D-FINE, RF-DETR, DINOv2 or SigLIP2, and none for mid-range phones on any model.</li>
+    <li>Licences not checked against the model's own LICENSE file: RTMPose, YOLOX, Qwen3-VL-2B, and the Roboflow cat-face datasets.</li>
+    <li>Unknown whether Haifa or the Steagall lab offer commercial terms.</li>
+    <li>Catellect-VL-2B (a Qwen3-VL-2B fine-tune) beats frontier models at reading cat behaviour, but it was trained and tested on the same six cats and gives no pain score. Treat it as a future direction.</li>
+  </ul>
+</section>
+
+<section aria-labelledby="src">
+  <h2 id="src">Key sources</h2>
+  <ul class="sources">
+    <li>D-FINE: <a href="https://github.com/Peterande/D-FINE">github.com/Peterande/D-FINE</a></li>
+    <li>RF-DETR: <a href="https://github.com/roboflow/rf-detr">github.com/roboflow/rf-detr</a></li>
+    <li>Ultralytics licence: <a href="https://www.ultralytics.com/license">ultralytics.com/license</a></li>
+    <li>cat-face-landmarks: <a href="https://huggingface.co/hugocornellier/cat-face-landmarks">huggingface.co/hugocornellier/cat-face-landmarks</a></li>
+    <li>CatFLW: <a href="https://github.com/martvelge/CatFLW">github.com/martvelge/CatFLW</a></li>
+    <li>DINOv2-Small: <a href="https://huggingface.co/facebook/dinov2-small">huggingface.co/facebook/dinov2-small</a></li>
+    <li>Cat re-ID benchmark: <a href="https://arxiv.org/abs/2603.02270">arXiv 2603.02270</a></li>
+    <li>BioCLIP 2: <a href="https://huggingface.co/imageomics/bioclip-2">huggingface.co/imageomics/bioclip-2</a></li>
+    <li>Bio-VQA: <a href="https://arxiv.org/abs/2611.05559">arXiv 2611.05559</a></li>
+    <li>Gemma 4 on LiteRT-LM: <a href="https://developers.google.com/edge/litert-lm/models/gemma-4">developers.google.com</a></li>
+    <li>Qwen3.5-2B: <a href="https://huggingface.co/Qwen/Qwen3.5-2B">huggingface.co/Qwen/Qwen3.5-2B</a></li>
+    <li>Catellect-VL: <a href="https://arxiv.org/abs/2608.22070">arXiv 2608.22070</a></li>
+    <li>Steagall et al. 2023: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10703818/">PMC10703818</a></li>
+  </ul>
+</section>
+
+</div>
