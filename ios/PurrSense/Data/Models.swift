@@ -12,10 +12,13 @@ struct TraceStep: Identifiable {
     let millis: Int
 }
 
+/// `embedding` is an image embedding of the enrolment photo, used to recognise the cat. It is empty
+/// for cats registered before photo matching existed, which fall back to matching `appearance` text.
 struct Cat: Identifiable, Hashable {
     var id: String
     var name: String
     var appearance: String
+    var embedding: [Float] = []
     var createdAt: Double = Date().timeIntervalSince1970 * 1000
 }
 
@@ -25,6 +28,13 @@ struct Grimace: Decodable {
     var ears = 0, eyes = 0, muzzle = 0, whiskers = 0, head = 0
     var total: Int { [ears, eyes, muzzle, whiskers, head].map { min(max($0, 0), 2) }.reduce(0, +) }
     var asMap: [String: Int] { ["ears": ears, "eyes": eyes, "muzzle": muzzle, "whiskers": whiskers, "head": head] }
+
+    /// Pain score used for the alert: the raw total plus a correction for Gemini under-scoring.
+    /// A Sci Rep 2025 study found chatbots score FGS pain too low (Gemini 1.5 Pro about 2.4/10 low),
+    /// so a cat truly at 5 would often miss the >= 4 alert. The offset comes from Remote Config
+    /// (`gemini_pain_offset`) and is an interim fix until a landmark-based scorer replaces Gemini
+    /// (see docs/RESEARCH_HANDOFF.md).
+    func painScore(offset: Int) -> Int { min(max(total + offset, 0), 10) }
 
     init() {}
     init(from decoder: Decoder) throws {
@@ -38,6 +48,20 @@ struct Grimace: Decodable {
     enum CodingKeys: String, CodingKey { case ears, eyes, muzzle, whiskers, head }
 }
 
+/// Mood is positive / neutral / negative: the research found no scientific basis for finer cat
+/// mood labels. Pain is read from the grimace score, not from mood. `normalize` also maps the
+/// older 8 labels, so earlier readings and off-format model answers still display sensibly.
+enum Mood {
+    static func normalize(_ raw: String) -> String {
+        switch raw.trimmingCharacters(in: .whitespaces).lowercased() {
+        case "positive", "relaxed", "playful", "content", "happy": return "positive"
+        case "neutral", "alert", "sleepy", "calm": return "neutral"
+        case "negative", "anxious", "fearful", "irritated", "uncomfortable", "stressed": return "negative"
+        default: return "unknown"
+        }
+    }
+}
+
 /// Output of the "See" step. Decoded leniently: missing fields fall back to defaults.
 struct QuickRead: Decodable {
     var cat = false
@@ -47,6 +71,8 @@ struct QuickRead: Decodable {
     var moodConfidence = 0.0
     var fgs = Grimace()
     var signs: [String] = []
+    /// On-device embedding of the cat crop; not part of the model's JSON.
+    var embedding: [Float] = []
 
     init() {}
     init(from decoder: Decoder) throws {
@@ -54,7 +80,7 @@ struct QuickRead: Decodable {
         cat = (try? c.decode(Bool.self, forKey: .cat)) ?? false
         faceVisible = (try? c.decode(Bool.self, forKey: .faceVisible)) ?? false
         appearance = (try? c.decode(String.self, forKey: .appearance)) ?? ""
-        mood = (try? c.decode(String.self, forKey: .mood)) ?? "unknown"
+        mood = Mood.normalize((try? c.decode(String.self, forKey: .mood)) ?? "")
         moodConfidence = (try? c.decode(Double.self, forKey: .moodConfidence)) ?? 0
         fgs = (try? c.decode(Grimace.self, forKey: .fgs)) ?? Grimace()
         signs = (try? c.decode([String].self, forKey: .signs)) ?? []
@@ -93,7 +119,8 @@ struct Reading: Identifiable {
     var catId: String
     var mood: String
     var moodConfidence: Double
-    var grimaceTotal: Int
+    var grimaceTotal: Int // raw model total
+    var painScore: Int    // grimaceTotal + pain offset, used for the alert
     var signs: [String]
     var careNote: String
     var deepUrgency: String?
@@ -108,11 +135,19 @@ struct Analysis {
     let deep: DeepCheck?
     let trace: [TraceStep]
     let alertThreshold: Int
+    let painOffset: Int
+    /// The Deep Check's scores win when it ran.
     var grimace: Grimace { deep?.fgs ?? quick.fgs }
+    var painScore: Int { grimace.painScore(offset: painOffset) }
 }
 
 struct AppConfig {
     var cloudQuickModel = "gemini-3.5-flash-lite"
     var cloudDeepModel = "gemini-3.8-flash"
     var grimaceThreshold = 4
+    /// Points added to Gemini's grimace total before the alert check (interim fix).
+    var painOffset = 2
+    /// Minimum cosine similarity for a photo match; below it the cat counts as unknown.
+    /// Placeholder: calibrate on real photos of look-alike cats.
+    var catIdMinSimilarity = 0.6
 }

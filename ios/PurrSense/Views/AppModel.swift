@@ -16,6 +16,8 @@ final class AppModel: ObservableObject {
     @Published var photo: UIImage?
     @Published var analysis: Analysis?
     @Published var suggestedAppearance = ""
+    /// Embedding of the photo on the "add cat" screen, saved with the new cat.
+    private var pendingEmbedding: [Float] = []
     @Published var history: [Reading] = []
     @Published var trend: (String, Brain)?
 
@@ -49,21 +51,21 @@ final class AppModel: ObservableObject {
                 return
             }
             busy = "Who's this?"
-            let cat = try await brain.identify(observed: quick.appearance, cats: cats, trace: &trace)
+            let cat = try await brain.identify(embedding: quick.embedding, observed: quick.appearance, cats: cats, trace: &trace)
 
             busy = "Writing a note…"
             let note = try await brain.careNote(name: cat?.name ?? "your cat", read: quick, trace: &trace)
 
             var deep: DeepCheck?
             if brain.needsDeepCheck(quick) {
-                trace.append(TraceStep(step: "Escalate? score \(quick.fgs.total) ≥ \(config.grimaceThreshold) or signs",
+                trace.append(TraceStep(step: "Escalate? pain \(quick.fgs.painScore(offset: config.painOffset)) ≥ \(config.grimaceThreshold) or signs",
                                        brain: .rules, millis: 0))
                 busy = "Score is elevated: asking the cloud for a Deep Check…"
                 deep = try? await brain.deepCheck(image, trace: &trace) // offline: skip gracefully
             }
 
             let a = Analysis(quick: quick, matchedCat: cat, careNote: note, deep: deep,
-                             trace: trace, alertThreshold: config.grimaceThreshold)
+                             trace: trace, alertThreshold: config.grimaceThreshold, painOffset: config.painOffset)
             repo.saveReading(uid: uid, catId: cat?.id ?? "unknown", analysis: a)
             analysis = a
             busy = nil
@@ -85,6 +87,7 @@ final class AppModel: ObservableObject {
                 return
             }
             suggestedAppearance = quick.appearance
+            pendingEmbedding = quick.embedding
             path.append(.addCat)
         } catch {
             self.error = error.localizedDescription
@@ -94,7 +97,9 @@ final class AppModel: ObservableObject {
     func saveCat(name: String, appearance: String) {
         let cat = repo.addCat(uid: uid,
                               name: name.trimmingCharacters(in: .whitespaces),
-                              appearance: appearance.trimmingCharacters(in: .whitespaces))
+                              appearance: appearance.trimmingCharacters(in: .whitespaces),
+                              embedding: pendingEmbedding)
+        pendingEmbedding = []
         cats.append(cat)
         path.removeAll()
     }
@@ -108,7 +113,7 @@ final class AppModel: ObservableObject {
             let fmt = DateFormatter()
             fmt.dateFormat = "EEE d MMM"
             let lines = history.prefix(10).map { r in
-                "\(fmt.string(from: Date(timeIntervalSince1970: r.createdAt / 1000))): mood \(r.mood), grimace \(r.grimaceTotal)/10"
+                "\(fmt.string(from: Date(timeIntervalSince1970: r.createdAt / 1000))): mood \(r.mood), pain \(r.painScore)/10"
                     + (r.signs.isEmpty ? "" : ", signs: \(r.signs.joined(separator: ", "))")
             }
             trend = try await brain.trend(name: cat.name, lines: lines)

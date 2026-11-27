@@ -20,6 +20,7 @@ import dev.twobrain.purrsense.data.Brain
 import dev.twobrain.purrsense.data.Cat
 import dev.twobrain.purrsense.data.DeepCheck
 import dev.twobrain.purrsense.data.IdMatch
+import dev.twobrain.purrsense.data.Mood
 import dev.twobrain.purrsense.data.QuickRead
 import dev.twobrain.purrsense.data.TraceStep
 import kotlinx.coroutines.flow.Flow
@@ -87,40 +88,66 @@ class CatBrain(private val config: AppConfig) {
         val brain = response.brain()
         trace += TraceStep("See (mood + grimace)", brain, ms)
 
-        parse<QuickRead>(response.text)?.let { return it }
+        parse<QuickRead>(response.text)?.let { return it.normalized() }
 
         // Small on-device models occasionally break the JSON format: retry once in the cloud.
         Log.w(TAG, "Quick read unparseable from $brain, retrying in cloud: ${response.text}")
         val (retry, ms2) = timed { cloudQuick.generateContent(prompt) }
         trace += TraceStep("See (cloud retry)", Brain.CLOUD, ms2)
-        return parse<QuickRead>(retry.text) ?: QuickRead()
+        return parse<QuickRead>(retry.text)?.normalized() ?: QuickRead()
     }
 
-    /** Step 2 "Who": text-only matching of the observed appearance against registered cats. */
-    suspend fun identify(observed: String, cats: List<Cat>, trace: MutableList<TraceStep>): Cat? {
-        if (cats.isEmpty() || observed.isBlank()) return null
+    private fun QuickRead.normalized() = copy(mood = Mood.normalize(mood))
+
+    /**
+     * Step 2 "Who". Photo matching first: compare the photo's on-device embedding with each
+     * enrolled cat's, and accept the best only above `cat_id_min_similarity`. The research found
+     * text descriptions identify cats about 54% of the time versus 85-89% for image embeddings.
+     * Cats registered before photo matching have no embedding and fall back to text matching.
+     */
+    suspend fun identify(
+        embedding: List<Float>?,
+        observed: String,
+        cats: List<Cat>,
+        trace: MutableList<TraceStep>,
+    ): Cat? {
+        if (cats.isEmpty()) return null
+        val enrolled = cats.filter { it.embedding.isNotEmpty() }
+        if (embedding != null && enrolled.isNotEmpty()) {
+            val (best, score) = enrolled.map { it to CatEmbedder.cosine(embedding, it.embedding) }
+                .maxBy { it.second }
+            trace += TraceStep("Who (photo match ${"%.2f".format(score)})", Brain.ON_DEVICE, 0)
+            if (score >= config.catIdMinSimilarity) return best
+            // Every cat has an embedding and none matched well enough: this cat isn't registered.
+            if (enrolled.size == cats.size) return null
+        }
+        val legacy = cats.filter { it.embedding.isEmpty() }
+        if (legacy.isEmpty() || observed.isBlank()) return null
         if (cats.size == 1) {
             trace += TraceStep("Who (single cat)", Brain.RULES, 0)
             return cats.first()
         }
-        val (response, ms) = timed { hybrid.generateContent(Prompts.identify(observed, cats)) }
+        val (response, ms) = timed { hybrid.generateContent(Prompts.identify(observed, legacy)) }
         trace += TraceStep("Who (identify)", response.brain(), ms)
         val match = parse<IdMatch>(response.text) ?: return null
-        return cats.firstOrNull { it.id == match.catId && match.confidence >= 0.5 }
+        return legacy.firstOrNull { it.id == match.catId && match.confidence >= 0.5 }
     }
 
     /** Step 3 "Care": owner-friendly explanation. Text-only, on-device first. */
     suspend fun careNote(name: String, read: QuickRead, trace: MutableList<TraceStep>): String {
         val (response, ms) = timed {
-            hybrid.generateContent(Prompts.careNote(name, read, config.grimaceThreshold))
+            hybrid.generateContent(Prompts.careNote(name, read, config.grimaceThreshold, config.painOffset))
         }
         trace += TraceStep("Care note", response.brain(), ms)
         return response.text?.trim().orEmpty()
     }
 
-    /** Rule-based escalation decision: no model involved, fully explainable. */
+    /**
+     * Rule-based escalation decision: no model involved, fully explainable. Uses the corrected
+     * pain score (raw total + Remote Config offset), because Gemini under-scores FGS pain.
+     */
     fun needsDeepCheck(read: QuickRead): Boolean =
-        read.cat && (read.fgs.total >= config.grimaceThreshold || read.signs.isNotEmpty())
+        read.cat && (read.fgs.painScore(config.painOffset) >= config.grimaceThreshold || read.signs.isNotEmpty())
 
     /** Step 4 "Deep Check": larger cloud model, higher-resolution image. */
     suspend fun deepCheck(photo: Bitmap, trace: MutableList<TraceStep>): DeepCheck? {
@@ -135,7 +162,7 @@ class CatBrain(private val config: AppConfig) {
 
     /** Weekly trend summary from stored readings (text only, on-device first, works offline). */
     suspend fun trend(name: String, lines: List<String>): Pair<String, Brain> {
-        val response = hybrid.generateContent(Prompts.trend(name, lines))
+        val response = hybrid.generateContent(Prompts.trend(name, lines, config.grimaceThreshold))
         return response.text?.trim().orEmpty() to response.brain()
     }
 

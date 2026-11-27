@@ -59,34 +59,56 @@ final class CatBrain {
         t0 = Date()
         let response = try await visionModel.generateContent(vision.crop.scaled(maxSide: 768), Prompts.quickRead)
         trace.append(TraceStep(step: "See (mood + grimace)", brain: .cloud, millis: ms(since: t0)))
-        return Self.parse(QuickRead.self, response.text) ?? QuickRead()
+        var read = Self.parse(QuickRead.self, response.text) ?? QuickRead()
+
+        t0 = Date()
+        read.embedding = (try? CatVision.featurePrint(of: vision.crop)) ?? []
+        if !read.embedding.isEmpty {
+            trace.append(TraceStep(step: "Photo embedding (Apple Vision)", brain: .onDevice, millis: ms(since: t0)))
+        }
+        return read
     }
 
-    /// Step 2 "Who": text-only appearance matching, on-device first.
-    func identify(observed: String, cats: [Cat], trace: inout [TraceStep]) async throws -> Cat? {
-        guard !cats.isEmpty, !observed.isEmpty else { return nil }
+    /// Step 2 "Who". Photo matching first: compare the photo's on-device embedding with each enrolled
+    /// cat's, and accept the best only above `cat_id_min_similarity`. The research found text
+    /// descriptions identify cats about 54% of the time versus 85-89% for image embeddings.
+    /// Cats registered before photo matching have no embedding and fall back to text matching.
+    func identify(embedding: [Float], observed: String, cats: [Cat], trace: inout [TraceStep]) async throws -> Cat? {
+        guard !cats.isEmpty else { return nil }
+        let enrolled = cats.filter { !$0.embedding.isEmpty }
+        if !embedding.isEmpty,
+           let top = enrolled.map({ ($0, CatVision.cosine(embedding, $0.embedding)) }).max(by: { $0.1 < $1.1 }) {
+            let (best, score) = top
+            trace.append(TraceStep(step: "Who (photo match \(String(format: "%.2f", score)))", brain: .onDevice, millis: 0))
+            if score >= config.catIdMinSimilarity { return best }
+            // Every cat has an embedding and none matched well enough: this cat isn't registered.
+            if enrolled.count == cats.count { return nil }
+        }
+        let legacy = cats.filter { $0.embedding.isEmpty }
+        guard !legacy.isEmpty, !observed.isEmpty else { return nil }
         if cats.count == 1 {
             trace.append(TraceStep(step: "Who (single cat)", brain: .rules, millis: 0))
             return cats[0]
         }
         let t0 = Date()
-        let (text, brain) = try await hybridText(Prompts.identify(observed: observed, cats: cats))
+        let (text, brain) = try await hybridText(Prompts.identify(observed: observed, cats: legacy))
         trace.append(TraceStep(step: "Who (identify)", brain: brain, millis: ms(since: t0)))
         guard let m = Self.parse(IdMatch.self, text), m.confidence >= 0.5 else { return nil }
-        return cats.first { $0.id == m.catId }
+        return legacy.first { $0.id == m.catId }
     }
 
     /// Step 3 "Care": owner-friendly explanation, on-device first.
     func careNote(name: String, read: QuickRead, trace: inout [TraceStep]) async throws -> String {
         let t0 = Date()
-        let (text, brain) = try await hybridText(Prompts.careNote(name: name, read: read, threshold: config.grimaceThreshold))
+        let (text, brain) = try await hybridText(Prompts.careNote(name: name, read: read, threshold: config.grimaceThreshold, painOffset: config.painOffset))
         trace.append(TraceStep(step: "Care note", brain: brain, millis: ms(since: t0)))
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Rule-based escalation: fully explainable, no model involved.
+    /// Rule-based escalation: fully explainable, no model involved. Uses the corrected pain score
+    /// (raw total + Remote Config offset), because Gemini under-scores FGS pain.
     func needsDeepCheck(_ read: QuickRead) -> Bool {
-        read.cat && (read.fgs.total >= config.grimaceThreshold || !read.signs.isEmpty)
+        read.cat && (read.fgs.painScore(offset: config.painOffset) >= config.grimaceThreshold || !read.signs.isEmpty)
     }
 
     /// Step 4 "Deep Check": larger cloud model on a higher-resolution crop.
@@ -100,7 +122,7 @@ final class CatBrain {
 
     /// Weekly trend from stored readings: text only, on-device first, works offline.
     func trend(name: String, lines: [String]) async throws -> (String, Brain) {
-        let (text, brain) = try await hybridText(Prompts.trend(name: name, lines: lines))
+        let (text, brain) = try await hybridText(Prompts.trend(name: name, lines: lines, threshold: config.grimaceThreshold))
         return (text.trimmingCharacters(in: .whitespacesAndNewlines), brain)
     }
 

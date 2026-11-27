@@ -4,10 +4,11 @@
 
 Cats are experts at hiding pain. PurrSense lets any owner snap a photo and get, in seconds:
 
-- **Who** it is — recognises which of your registered cats is in the photo
-- **Mood** — relaxed, alert, playful, sleepy, anxious, fearful, irritated, uncomfortable
+- **Who** it is — recognises which of your registered cats is in the photo, by comparing on-device image embeddings (Apple Vision feature print on iOS, MediaPipe MobileNet-V3 on Android). These are general-purpose models for now; cats registered before this fall back to text descriptions.
+- **Mood** — positive, neutral or negative (the research found no scientific basis for finer cat mood labels; pain comes from the grimace score)
 - **Pain screening** — a score on the **Feline Grimace Scale** (FGS), a published scale vets use to spot pain in cats: 5 facial "action units" (ears, eyes, muzzle, whiskers, head), each scored 0–2, giving a total out of 10. A score of 4 or more is the published threshold for reassessing pain.
 - **Visible health signs** — eye discharge, squinting, nasal discharge, an unkempt coat…
+- **A safety margin on the pain score** — Gemini tends to under-score cat pain (about 2.4/10 low in a 2025 study), so the app adds 2 points (Remote Config `gemini_pain_offset`) before the ≥4 check. This is an interim fix; see [`docs/RESEARCH_HANDOFF.md`](docs/RESEARCH_HANDOFF.md).
 - **A cloud Deep Check** — runs automatically only when the score crosses the threshold
 - **Weekly trend** — a plain-English summary of each cat's history
 
@@ -21,9 +22,9 @@ Each step runs where it makes the most sense, and the app shows which brain ran 
 |---|---|---|---|
 | 0. Cat check + crop | — | **On-device** (Apple Vision) | Photos without a cat never leave the phone; only the cat crop is uploaded |
 | 1. See: mood + grimace (image) | **Hybrid**: on-device Nano, falls back to cloud | Cloud (Apple's on-device model is text-only) | Daily check-ins are private, instant, free and work offline on Nano phones |
-| 2. Who: identify the cat (text) | **Hybrid**, on-device first | **Hybrid**, on-device first | Matching an appearance description against your cats is a small text task |
+| 2. Who: identify the cat (image embedding) | **On-device** (MediaPipe) | **On-device** (Apple Vision) | Image embeddings identify cats far better than text descriptions (85–89% vs ~54% in the research); text matching remains only for cats registered earlier |
 | 3. Care note (text) | **Hybrid**, on-device first | **Hybrid**, on-device first | Private and free |
-| Escalate? | Rule: `FGS ≥ threshold or signs` | same | Explainable; the threshold is tuned in Remote Config |
+| Escalate? | Rule: `FGS + pain offset ≥ threshold or signs` | same | Explainable; the threshold is tuned in Remote Config |
 | 4. Deep Check (image) | **Cloud** (larger Gemini) | **Cloud** | Only the rare worrying cases use the stronger, paid model |
 | Weekly trend (text) | **Hybrid**, on-device first | **Hybrid**, on-device first | Summarising your own history works offline |
 
@@ -50,7 +51,12 @@ firebase/           Firestore rules, Remote Config template
 firebase.json       Firebase CLI config (deploy rules + remote config)
 docs/PROPOSAL.md    Project proposal
 docs/DEVPOST_STORY.md  Devpost "About the project" draft
+docs/file-map.html  Which files are frontend / backend and what each one does
 ```
+
+**File map:** [view the page](https://claude.ai/artifact/MYvr2zXZ4uxw92WThxmr71) (source: [`docs/file-map.html`](docs/file-map.html)). There is no backend server: the backend is Firebase, configured by `firebase/` and `firebase.json`. Each app has a client logic layer (`ai/`, `data/`) and a UI layer (`ui/` on Android, `Views/` on iOS).
+
+> **Frontend design is not finalised.** The current screens are a first working version. Aqil and Ilham will do more research on the frontend design before it is settled, so expect `ui/` and `Views/` to change.
 
 ## Setup
 

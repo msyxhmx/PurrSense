@@ -13,6 +13,10 @@ data class AppConfig(
     val cloudQuickModel: String,
     val cloudDeepModel: String,
     val grimaceThreshold: Int,
+    /** Points added to Gemini's grimace total before the alert check (interim fix). */
+    val painOffset: Int,
+    /** Minimum cosine similarity for a photo match; below it the cat counts as unknown. */
+    val catIdMinSimilarity: Double,
 )
 
 object RemoteConfigService {
@@ -20,6 +24,8 @@ object RemoteConfigService {
         "cloud_quick_model" to "gemini-3.5-flash-lite",
         "cloud_deep_model" to "gemini-3.8-flash",
         "grimace_alert_threshold" to 4L, // published FGS analgesia threshold: 4/10
+        "gemini_pain_offset" to 2L,      // Gemini under-scores FGS pain by ~2.4/10 (Sci Rep 2025)
+        "cat_id_min_similarity" to 0.6,  // placeholder: calibrate on real photos of look-alike cats
     )
 
     suspend fun load(): AppConfig {
@@ -33,6 +39,8 @@ object RemoteConfigService {
             cloudQuickModel = rc.getString("cloud_quick_model").ifBlank { "gemini-3.5-flash-lite" },
             cloudDeepModel = rc.getString("cloud_deep_model").ifBlank { "gemini-3.8-flash" },
             grimaceThreshold = rc.getLong("grimace_alert_threshold").toInt().takeIf { it in 1..10 } ?: 4,
+            painOffset = rc.getLong("gemini_pain_offset").toInt().takeIf { it in 0..5 } ?: 2,
+            catIdMinSimilarity = rc.getDouble("cat_id_min_similarity").takeIf { it in 0.0..1.0 } ?: 0.6,
         )
     }
 }
@@ -58,16 +66,23 @@ class Repository {
                 id = d.id,
                 name = d.getString("name").orEmpty(),
                 appearance = d.getString("appearance").orEmpty(),
+                embedding = (d.get("embedding") as? List<*>).orEmpty().mapNotNull { (it as? Number)?.toFloat() },
                 createdAt = d.getLong("createdAt") ?: 0L,
             )
         }
 
-    suspend fun addCat(uid: String, name: String, appearance: String): Cat {
+    suspend fun addCat(uid: String, name: String, appearance: String, embedding: List<Float>): Cat {
         val doc = cats(uid).document()
-        val cat = Cat(id = doc.id, name = name, appearance = appearance)
+        val cat = Cat(id = doc.id, name = name, appearance = appearance, embedding = embedding)
         // Not awaited: Firestore applies writes to its local cache immediately and syncs when
         // online, so registering a cat and saving readings also work offline.
-        doc.set(mapOf("name" to name, "appearance" to appearance, "createdAt" to cat.createdAt))
+        // The embedding is a vector of numbers, not the photo: the photo is never uploaded.
+        doc.set(
+            mapOf(
+                "name" to name, "appearance" to appearance,
+                "embedding" to embedding.map { it.toDouble() }, "createdAt" to cat.createdAt,
+            )
+        )
         return cat
     }
 
@@ -77,6 +92,7 @@ class Repository {
                 "mood" to r.mood,
                 "moodConfidence" to r.moodConfidence,
                 "grimaceTotal" to r.grimaceTotal,
+                "painScore" to r.painScore,
                 "grimace" to r.grimace,
                 "signs" to r.signs,
                 "careNote" to r.careNote,
@@ -96,9 +112,11 @@ class Repository {
                 Reading(
                     id = d.id,
                     catId = catId,
-                    mood = d.getString("mood").orEmpty(),
+                    mood = Mood.normalize(d.getString("mood").orEmpty()),
                     moodConfidence = d.getDouble("moodConfidence") ?: 0.0,
                     grimaceTotal = (d.getLong("grimaceTotal") ?: 0L).toInt(),
+                    // Readings saved before the offset existed have no painScore: use the raw total.
+                    painScore = (d.getLong("painScore") ?: d.getLong("grimaceTotal") ?: 0L).toInt(),
                     signs = (d.get("signs") as? List<String>).orEmpty(),
                     careNote = d.getString("careNote").orEmpty(),
                     deepUrgency = d.getString("deepUrgency"),

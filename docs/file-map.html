@@ -1,0 +1,433 @@
+<title>PurrSense File Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; a layer diagram up top, then one section per layer with Android/iOS file pairs side by side. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --fg: #1b2230; --muted: #5d6677; --line: #e1e4ea;
+  --front: #0f8a7e; --front-soft: #e2f4f1;
+  --logic: #6a4fc7; --logic-soft: #ece8fa;
+  --back: #b8650c; --back-soft: #fbefdf;
+  --other: #5d6677; --other-soft: #eceef2;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161d; --surface: #1a2029; --fg: #e6e9ef; --muted: #9aa3b2; --line: #2b3340;
+  --front: #4fd1c1; --front-soft: #15302d; --logic: #a993f5; --logic-soft: #262040;
+  --back: #f0a050; --back-soft: #352614; --other: #9aa3b2; --other-soft: #232a35; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #1a2029; --fg: #e6e9ef; --muted: #9aa3b2; --line: #2b3340;
+  --front: #4fd1c1; --front-soft: #15302d; --logic: #a993f5; --logic-soft: #262040;
+  --back: #f0a050; --back-soft: #352614; --other: #9aa3b2; --other-soft: #232a35; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--f-body); }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1rem; font-family: var(--f-body); font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--muted); font-size: 1.05rem; }
+header { display: grid; gap: 12px; }
+.eyebrow { font: 500 .75rem var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+code, .path { font-family: var(--f-mono); font-size: .84em; }
+
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 6px; }
+.note strong { font-weight: 600; }
+
+/* layer diagram */
+.stack { display: grid; gap: 8px; }
+.layer { display: grid; grid-template-columns: 170px 1fr; gap: 16px; align-items: center; padding: 14px 18px; border-radius: 10px; }
+.layer .name { font: 600 .95rem var(--f-display); }
+.layer .what { font-size: .9rem; }
+.layer.front { background: var(--front-soft); } .layer.front .name { color: var(--front); }
+.layer.logic { background: var(--logic-soft); } .layer.logic .name { color: var(--logic); }
+.layer.back  { background: var(--back-soft); }  .layer.back .name  { color: var(--back); }
+.arrow { text-align: center; color: var(--muted); font: .78rem var(--f-mono); }
+
+/* filter */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filters button { font: 500 .85rem var(--f-body); padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.filters button:focus-visible { outline: 2px solid var(--logic); outline-offset: 2px; }
+
+section.group { display: grid; gap: 16px; }
+.ghead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 14px; }
+.tag { font: 600 .72rem var(--f-mono); letter-spacing: .06em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; }
+.tag.front { background: var(--front-soft); color: var(--front); }
+.tag.logic { background: var(--logic-soft); color: var(--logic); }
+.tag.back  { background: var(--back-soft);  color: var(--back); }
+.tag.other { background: var(--other-soft); color: var(--other); }
+.tag.warn { background: var(--back); color: var(--surface); justify-self: start; }
+.status { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid var(--back); border-radius: 10px; background: var(--back-soft); }
+.ghead p { color: var(--muted); font-size: .92rem; flex-basis: 100%; }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; }
+th, td { text-align: left; vertical-align: top; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 .72rem var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+td.role { font-weight: 600; width: 18%; }
+td.files { width: 30%; }
+td.files .path { display: block; color: var(--fg); word-break: break-all; }
+td.files .plat { font: 500 .68rem var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+td.files .row + .row { margin-top: 6px; }
+td.desc { color: var(--fg); font-size: .92rem; }
+td.desc ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
+.na { color: var(--muted); font-style: italic; font-size: .85em; }
+
+/* full tree */
+.tree { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font: .84rem/1.5 var(--f-mono); }
+.tree ul { list-style: none; margin: 0; padding-left: 18px; border-left: 1px dashed var(--line); }
+.tree > ul { padding-left: 0; border-left: 0; }
+.tree li { margin: 2px 0; }
+.tree summary { cursor: pointer; font-weight: 500; list-style: none; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree summary::before { content: "▾ "; color: var(--muted); }
+.tree details:not([open]) > summary::before { content: "▸ "; }
+.tree summary:focus-visible { outline: 2px solid var(--logic); outline-offset: 2px; }
+.tree .f { display: flex; flex-wrap: wrap; gap: 0 10px; align-items: baseline; padding-left: 2px; }
+.tree .n { white-space: nowrap; border-left: 3px solid var(--other); padding-left: 6px; }
+.tree .n.front { border-color: var(--front); } .tree .n.logic { border-color: var(--logic); }
+.tree .n.back { border-color: var(--back); }
+.tree .d { font-family: var(--f-body); font-size: .82rem; color: var(--muted); }
+.tree .cnt { font-weight: 400; color: var(--muted); font-size: .78rem; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px; }
+.treebar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.treebar button { font: 500 .8rem var(--f-body); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+
+footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 16px; }
+
+@media (max-width: 560px) {
+  .layer { grid-template-columns: 1fr; gap: 4px; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">purrsense / codebase</span>
+    <h1>PurrSense File Map</h1>
+    <p class="lede">Which files are frontend, which are backend, and what each one does. PurrSense is a cat wellbeing app (mood + Feline Grimace Scale pain score) with an Android app and an iOS app that share one Firebase project.</p>
+  </header>
+
+  <div class="note">
+    <strong>There is no backend server in this repo.</strong>
+    <p>The "backend" is Firebase, a managed cloud service. The repo only contains its configuration (database security rules, Remote Config values). Everything else runs on the phone. The mobile apps contain a client-side logic layer that talks to Firebase and to Gemini, so this page splits the code into three layers instead of two.</p>
+  </div>
+
+  <div class="stack" aria-label="Architecture layers">
+    <div class="layer front"><span class="name">Frontend (UI)</span><span class="what">Screens, navigation, camera/photo picker. Jetpack Compose on Android, SwiftUI on iOS. <b>Design not finalised.</b></span></div>
+    <div class="arrow">calls ↓</div>
+    <div class="layer logic"><span class="name">Client logic</span><span class="what">AI pipeline, prompts, data models, Firestore/Auth/Remote Config access. Runs on the phone but is the app's "backend-facing" code.</span></div>
+    <div class="arrow">network ↓ (Firebase SDKs)</div>
+    <div class="layer back"><span class="name">Backend (Firebase)</span><span class="what">Auth (anonymous), Firestore database, Remote Config, App Check, AI Logic → Gemini in the cloud. Configured by the files in <code>firebase/</code>.</span></div>
+  </div>
+
+  <section class="group" id="tree">
+    <div class="ghead"><h2>Full file tree</h2>
+      <p>Every file and folder in the project (56 files, 22 folders, not counting <code>.git</code>). The coloured bar on each file shows its layer.</p></div>
+    <div class="treebar">
+      <div class="legend"><span class="tag front">Frontend</span><span class="tag logic">Client logic</span><span class="tag back">Backend</span><span class="tag other">Build &amp; docs</span></div>
+      <div><button id="t-open" type="button">Expand all</button> <button id="t-close" type="button">Collapse all</button></div>
+    </div>
+    <div class="tree"><ul>
+<li><details open><summary>purrsense/ <span class="cnt">project root</span></summary><ul>
+  <li class="f"><span class="n other">.gitignore</span><span class="d">Keeps build output and Firebase secret files out of git</span></li>
+  <li class="f"><span class="n other">LICENSE</span><span class="d">Apache 2.0 licence</span></li>
+  <li class="f"><span class="n other">README.md</span><span class="d">Overview, hybrid design table, setup steps</span></li>
+  <li class="f"><span class="n back">firebase.json</span><span class="d">Firebase CLI config: what to deploy and from where</span></li>
+
+  <li><details open><summary>android/ <span class="cnt">Android app (Kotlin, Jetpack Compose)</span></summary><ul>
+    <li class="f"><span class="n other">.gitignore</span><span class="d">Ignores Gradle build output and google-services.json</span></li>
+    <li class="f"><span class="n other">build.gradle.kts</span><span class="d">Top-level Gradle plugins</span></li>
+    <li class="f"><span class="n other">settings.gradle.kts</span><span class="d">Project name, modules and repositories</span></li>
+    <li class="f"><span class="n other">gradle.properties</span><span class="d">Gradle and AndroidX settings</span></li>
+    <li class="f"><span class="n other">gradlew</span><span class="d">Gradle wrapper script (macOS/Linux)</span></li>
+    <li class="f"><span class="n other">gradlew.bat</span><span class="d">Gradle wrapper script (Windows)</span></li>
+    <li><details open><summary>gradle/wrapper/</summary><ul>
+      <li class="f"><span class="n other">gradle-wrapper.jar</span><span class="d">Downloads the right Gradle version</span></li>
+      <li class="f"><span class="n other">gradle-wrapper.properties</span><span class="d">Which Gradle version to use</span></li>
+    </ul></details></li>
+    <li><details open><summary>app/</summary><ul>
+      <li class="f"><span class="n other">build.gradle.kts</span><span class="d">SDK versions and dependencies (Firebase, MediaPipe, Compose)</span></li>
+      <li><details open><summary>src/main/</summary><ul>
+        <li class="f"><span class="n other">AndroidManifest.xml</span><span class="d">App, activity, permissions, camera FileProvider</span></li>
+        <li><details open><summary>assets/</summary><ul>
+          <li class="f"><span class="n logic">mobilenet_v3_small.tflite</span><span class="d">On-device model for cat recognition embeddings</span></li>
+        </ul></details></li>
+        <li><details open><summary>res/</summary><ul>
+          <li><details open><summary>values/</summary><ul>
+            <li class="f"><span class="n front">strings.xml</span><span class="d">App name</span></li>
+          </ul></details></li>
+          <li><details open><summary>xml/</summary><ul>
+            <li class="f"><span class="n front">file_paths.xml</span><span class="d">Folder the camera may save scan.jpg into</span></li>
+          </ul></details></li>
+        </ul></details></li>
+        <li><details open><summary>java/dev/twobrain/purrsense/ <span class="cnt">package</span></summary><ul>
+          <li class="f"><span class="n logic">PurrSenseApp.kt</span><span class="d">Starts Firebase and App Check</span></li>
+          <li class="f"><span class="n front">MainActivity.kt</span><span class="d">Hosts the UI, camera and photo picker</span></li>
+          <li><details open><summary>ai/</summary><ul>
+            <li class="f"><span class="n logic">CatBrain.kt</span><span class="d">All Gemini calls: See, Who, Care, Deep Check, Trend</span></li>
+            <li class="f"><span class="n logic">CatEmbedder.kt</span><span class="d">On-device photo embedding + similarity</span></li>
+            <li class="f"><span class="n logic">Prompts.kt</span><span class="d">Text instructions sent to the models</span></li>
+          </ul></details></li>
+          <li><details open><summary>data/</summary><ul>
+            <li class="f"><span class="n logic">Models.kt</span><span class="d">Cat, Grimace, Mood, Reading and other data shapes</span></li>
+            <li class="f"><span class="n logic">Repository.kt</span><span class="d">Sign-in, Remote Config, Firestore reads/writes</span></li>
+          </ul></details></li>
+          <li><details open><summary>ui/</summary><ul>
+            <li class="f"><span class="n front">MainViewModel.kt</span><span class="d">Screen state and the scan flow</span></li>
+            <li class="f"><span class="n front">Screens.kt</span><span class="d">Home, Result, Add cat, Cat detail screens</span></li>
+          </ul></details></li>
+        </ul></details></li>
+      </ul></details></li>
+    </ul></details></li>
+  </ul></details></li>
+
+  <li><details open><summary>ios/ <span class="cnt">iOS app (SwiftUI)</span></summary><ul>
+    <li class="f"><span class="n other">.gitignore</span><span class="d">Ignores Xcode output and GoogleService-Info.plist</span></li>
+    <li class="f"><span class="n other">project.yml</span><span class="d">XcodeGen spec: iOS 26+, Firebase packages, permissions</span></li>
+    <li><details open><summary>PurrSense/</summary><ul>
+      <li class="f"><span class="n logic">PurrSenseApp.swift</span><span class="d">App entry point, starts Firebase and App Check</span></li>
+      <li><details open><summary>AI/</summary><ul>
+        <li class="f"><span class="n logic">CatBrain.swift</span><span class="d">All Gemini / Apple model calls</span></li>
+        <li class="f"><span class="n logic">CatVision.swift</span><span class="d">Cat detection, crop and embedding with Apple Vision</span></li>
+        <li class="f"><span class="n logic">Prompts.swift</span><span class="d">Text instructions sent to the models</span></li>
+      </ul></details></li>
+      <li><details open><summary>Data/</summary><ul>
+        <li class="f"><span class="n logic">Models.swift</span><span class="d">Data shapes (same as Android)</span></li>
+        <li class="f"><span class="n logic">Repository.swift</span><span class="d">Sign-in, Remote Config, Firestore reads/writes</span></li>
+      </ul></details></li>
+      <li><details open><summary>Views/</summary><ul>
+        <li class="f"><span class="n front">AppModel.swift</span><span class="d">Screen state and the scan flow</span></li>
+        <li class="f"><span class="n front">HomeView.swift</span><span class="d">Home screen, photo picker, camera</span></li>
+        <li class="f"><span class="n front">ResultView.swift</span><span class="d">Analysis result and trace</span></li>
+        <li class="f"><span class="n front">CatViews.swift</span><span class="d">Add cat and cat detail screens</span></li>
+      </ul></details></li>
+    </ul></details></li>
+  </ul></details></li>
+
+  <li><details open><summary>firebase/ <span class="cnt">backend configuration</span></summary><ul>
+    <li class="f"><span class="n back">firestore.rules</span><span class="d">Users can only access their own data</span></li>
+    <li class="f"><span class="n back">firestore.indexes.json</span><span class="d">Database indexes (empty)</span></li>
+    <li class="f"><span class="n back">remoteconfig.template.json</span><span class="d">Models, pain threshold, offsets</span></li>
+  </ul></details></li>
+
+  <li><details open><summary>docs/</summary><ul>
+    <li class="f"><span class="n other">PROPOSAL.md</span><span class="d">Hackathon project proposal</span></li>
+    <li class="f"><span class="n other">DEVPOST_STORY.md</span><span class="d">Devpost "About the project" draft</span></li>
+    <li class="f"><span class="n other">RESEARCH_HANDOFF.md</span><span class="d">Research summary and what to replace next</span></li>
+    <li class="f"><span class="n other">file-map.html</span><span class="d">This page: which files are frontend / backend and what each does</span></li>
+    <li><details open><summary>research/</summary><ul>
+      <li class="f"><span class="n other">purrsense-algorithm-review.html</span><span class="d">Algorithm review page</span></li>
+      <li class="f"><span class="n other">purrsense-open-models.html</span><span class="d">Open model picks page</span></li>
+      <li class="f"><span class="n other">PurrSense-research-summary.png</span><span class="d">Summary image of the algorithm research</span></li>
+      <li class="f"><span class="n other">PurrSense-open-models-summary.png</span><span class="d">Summary image of the model research</span></li>
+    </ul></details></li>
+  </ul></details></li>
+
+  <li><details open><summary>reports/</summary><ul>
+    <li class="f"><span class="n other">Cat face analysis algorithms.md</span><span class="d">Report: which algorithms the research supports</span></li>
+    <li class="f"><span class="n other">Open source models for PurrSense.md</span><span class="d">Report: usable open models and licences</span></li>
+  </ul></details></li>
+
+  <li><details open><summary>research_notes/</summary><ul>
+    <li><details open><summary>Cat face analysis algorithms/</summary><ul>
+      <li class="f"><span class="n other">detection_identification.md</span><span class="d">Finding and identifying cats</span></li>
+      <li class="f"><span class="n other">emotion_recognition.md</span><span class="d">Reading cat mood</span></li>
+      <li class="f"><span class="n other">pain_detection.md</span><span class="d">Grimace-scale pain scoring</span></li>
+    </ul></details></li>
+    <li><details open><summary>Open source models for PurrSense/</summary><ul>
+      <li class="f"><span class="n other">cat_specific_models.md</span><span class="d">Models trained on cats</span></li>
+      <li class="f"><span class="n other">on_device_vlms.md</span><span class="d">Vision-language models that fit on a phone</span></li>
+      <li class="f"><span class="n other">vision_backbones.md</span><span class="d">General image models (e.g. DINOv2)</span></li>
+    </ul></details></li>
+  </ul></details></li>
+</ul></details></li>
+    </ul></div>
+  </section>
+
+  <div class="filters" role="group" aria-label="Filter by layer">
+    <button id="f-all" data-f="all" aria-pressed="true">All</button>
+    <button id="f-front" data-f="front" aria-pressed="false">Frontend</button>
+    <button id="f-logic" data-f="logic" aria-pressed="false">Client logic</button>
+    <button id="f-back" data-f="back" aria-pressed="false">Backend</button>
+    <button id="f-other" data-f="other" aria-pressed="false">Build &amp; docs</button>
+  </div>
+
+  <!-- BACKEND -->
+  <section class="group" data-layer="back">
+    <div class="ghead"><span class="tag back">Backend</span><h2>Firebase configuration</h2>
+      <p>Deployed to the cloud with <code>firebase deploy --only firestore:rules,remoteconfig</code>. Shared by both apps.</p></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Role</th><th>File</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td class="role">CLI config</td><td class="files"><span class="path">firebase.json</span></td>
+          <td class="desc">Tells the Firebase CLI where the Firestore rules, indexes and Remote Config template live, so one deploy command pushes all of them.</td></tr>
+        <tr><td class="role">Database security</td><td class="files"><span class="path">firebase/firestore.rules</span></td>
+          <td class="desc">The only server-side access control. A signed-in user can read and write <code>users/{uid}/**</code> only when <code>uid</code> is their own. Nobody can see another user's cats or readings.</td></tr>
+        <tr><td class="role">Database indexes</td><td class="files"><span class="path">firebase/firestore.indexes.json</span></td>
+          <td class="desc">Empty. The app's queries (order by <code>createdAt</code>) use Firestore's automatic single-field indexes.</td></tr>
+        <tr><td class="role">Remote Config</td><td class="files"><span class="path">firebase/remoteconfig.template.json</span></td>
+          <td class="desc">Values the team can change without releasing a new app:
+            <ul>
+              <li><code>cloud_quick_model</code>: Gemini model for the quick read and fallbacks</li>
+              <li><code>cloud_deep_model</code>: larger Gemini model for the Deep Check</li>
+              <li><code>grimace_alert_threshold</code>: pain score (default 4/10) that triggers a Deep Check</li>
+              <li><code>gemini_pain_offset</code>: +2 points added because Gemini under-scores pain</li>
+              <li><code>cat_id_min_similarity</code>: cosine similarity (0.6) needed to recognise a cat</li>
+            </ul></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- CLIENT LOGIC -->
+  <section class="group" data-layer="logic">
+    <div class="ghead"><span class="tag logic">Client logic</span><h2>AI pipeline and data access</h2>
+      <p>The code that talks to the backend. Each Android file has an iOS twin that does the same job.</p></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Role</th><th>Files</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td class="role">AI "brain"</td><td class="files">
+            <div class="row"><span class="plat">Android</span><span class="path">android/…/ai/CatBrain.kt</span></div>
+            <div class="row"><span class="plat">iOS</span><span class="path">ios/PurrSense/AI/CatBrain.swift</span></div></td>
+          <td class="desc">Every Firebase AI Logic (Gemini) call lives here. Runs the pipeline steps:
+            <ul>
+              <li><b>See</b>: mood + 5 grimace scores from the photo. Android tries on-device Gemini Nano first, then cloud; iOS uses cloud (Apple's on-device model is text-only).</li>
+              <li><b>Who</b>: which registered cat it is, by comparing image embeddings; falls back to text matching for older cats.</li>
+              <li><b>Care note</b>: a short owner-friendly explanation, on-device first.</li>
+              <li><b>Escalate?</b>: a plain rule, pain score + offset ≥ threshold or visible signs.</li>
+              <li><b>Deep Check</b>: larger cloud model at higher resolution, only when escalated.</li>
+              <li><b>Trend</b>: summary of recent readings.</li>
+            </ul>
+            Also records where each step ran (on-device / cloud / rules) for the "TwoBrain trace".</td></tr>
+        <tr><td class="role">Prompts</td><td class="files">
+            <div class="row"><span class="plat">Android</span><span class="path">android/…/ai/Prompts.kt</span></div>
+            <div class="row"><span class="plat">iOS</span><span class="path">ios/PurrSense/AI/Prompts.swift</span></div></td>
+          <td class="desc">The text sent to the models: quick read (JSON with mood and Feline Grimace Scale), identify, care note, Deep Check and trend. Kept short because on-device models accept about 4k tokens in and 256 out.</td></tr>
+        <tr><td class="role">On-device vision</td><td class="files">
+            <div class="row"><span class="plat">Android</span><span class="path">android/…/ai/CatEmbedder.kt</span></div>
+            <div class="row"><span class="plat">iOS</span><span class="path">ios/PurrSense/AI/CatVision.swift</span></div></td>
+          <td class="desc">Turns a photo into a number vector (embedding) to recognise the cat, plus cosine similarity.
+            Android uses MediaPipe with <code>mobilenet_v3_small.tflite</code>. iOS uses Apple Vision, which also checks there is a cat and crops to it before anything is uploaded.</td></tr>
+        <tr><td class="role">Data access</td><td class="files">
+            <div class="row"><span class="plat">Android</span><span class="path">android/…/data/Repository.kt</span></div>
+            <div class="row"><span class="plat">iOS</span><span class="path">ios/PurrSense/Data/Repository.swift</span></div></td>
+          <td class="desc">The bridge to Firebase services:
+            <ul>
+              <li>Loads Remote Config into an <code>AppConfig</code>, with safe defaults when offline.</li>
+              <li>Signs the user in anonymously.</li>
+              <li>Reads and writes Firestore: <code>users/{uid}/cats/{catId}</code> and <code>…/readings/{id}</code>. Writes aren't awaited so they work offline.</li>
+            </ul>
+            Photos are never uploaded, only structured results and embeddings.</td></tr>
+        <tr><td class="role">Data models</td><td class="files">
+            <div class="row"><span class="plat">Android</span><span class="path">android/…/data/Models.kt</span></div>
+            <div class="row"><span class="plat">iOS</span><span class="path">ios/PurrSense/Data/Models.swift</span></div></td>
+          <td class="desc">Shapes of the data: <code>Cat</code>, <code>Grimace</code> (5 scores, total, pain score with offset), <code>Mood</code> (positive / neutral / negative), <code>QuickRead</code>, <code>DeepCheck</code>, <code>Reading</code> (what Firestore stores), <code>Analysis</code> and <code>TraceStep</code>.</td></tr>
+        <tr><td class="role">App start-up</td><td class="files">
+            <div class="row"><span class="plat">Android</span><span class="path">android/…/PurrSenseApp.kt</span></div>
+            <div class="row"><span class="plat">iOS</span><span class="path">ios/PurrSense/PurrSenseApp.swift</span></div></td>
+          <td class="desc">Initialises Firebase and installs App Check (debug provider for the hackathon), which AI Logic requires. On iOS this is also the SwiftUI entry point.</td></tr>
+        <tr><td class="role">On-device model</td><td class="files">
+            <div class="row"><span class="plat">Android</span><span class="path">android/app/src/main/assets/mobilenet_v3_small.tflite</span></div>
+            <div class="row"><span class="plat">iOS</span><span class="na">built into Apple Vision</span></div></td>
+          <td class="desc">Binary model file loaded by <code>CatEmbedder</code> to compute cat embeddings on the phone.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- FRONTEND -->
+  <section class="group" data-layer="front">
+    <div class="ghead"><span class="tag front">Frontend</span><h2>Screens and app state</h2>
+      <p>What the user sees and taps. Four screens on both platforms: Home, Result, Add cat, Cat detail.</p></div>
+    <div class="status">
+      <span class="tag warn">Not finalised</span>
+      <p><strong>The frontend design is not final.</strong> The current screens are a working first version for the hackathon build. Aqil and Ilham will research the frontend design further (layout, visual style, how results and pain alerts are shown) before it is settled. Expect these files to change.</p>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Role</th><th>Files</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td class="role">State / controller</td><td class="files">
+            <div class="row"><span class="plat">Android</span><span class="path">android/…/ui/MainViewModel.kt</span></div>
+            <div class="row"><span class="plat">iOS</span><span class="path">ios/PurrSense/Views/AppModel.swift</span></div></td>
+          <td class="desc">Holds the UI state (busy message, errors, cats, current screen, history, trend) and runs the full flow when a photo arrives: See → Who → Care → Escalate → Deep Check → save. Also handles adding a cat and loading a cat's history.</td></tr>
+        <tr><td class="role">Host activity</td><td class="files">
+            <div class="row"><span class="plat">Android</span><span class="path">android/…/MainActivity.kt</span></div>
+            <div class="row"><span class="plat">iOS</span><span class="na">camera wrapper is in HomeView</span></div></td>
+          <td class="desc">Hosts the Compose UI, launches the photo picker and camera, and decodes the image to a bitmap (max 1600 px) the models can read.</td></tr>
+        <tr><td class="role">All screens</td><td class="files">
+            <div class="row"><span class="plat">Android</span><span class="path">android/…/ui/Screens.kt</span></div></td>
+          <td class="desc">Every Compose screen in one file: Home (cats list, on-device model status and download), Result (mood, grimace card, care note, Deep Check, TwoBrain trace), Add cat, Cat detail (history + trend).</td></tr>
+        <tr><td class="role">Home</td><td class="files">
+            <div class="row"><span class="plat">iOS</span><span class="path">ios/PurrSense/Views/HomeView.swift</span></div></td>
+          <td class="desc">Home screen, photo picker, Apple Intelligence status banner, busy overlay and a small UIKit camera wrapper.</td></tr>
+        <tr><td class="role">Result</td><td class="files">
+            <div class="row"><span class="plat">iOS</span><span class="path">ios/PurrSense/Views/ResultView.swift</span></div></td>
+          <td class="desc">Shows the analysis: grimace card with the 5 scores and alert, care note, Deep Check, and the per-step trace rows.</td></tr>
+        <tr><td class="role">Cat screens</td><td class="files">
+            <div class="row"><span class="plat">iOS</span><span class="path">ios/PurrSense/Views/CatViews.swift</span></div></td>
+          <td class="desc">Add-cat form (name + suggested appearance) and the cat detail screen with history and weekly trend.</td></tr>
+        <tr><td class="role">Resources</td><td class="files">
+            <div class="row"><span class="plat">Android</span><span class="path">res/values/strings.xml</span></div>
+            <div class="row"><span class="plat">Android</span><span class="path">res/xml/file_paths.xml</span></div></td>
+          <td class="desc">App name string, and the folder the camera is allowed to save its temporary <code>scan.jpg</code> into (used by FileProvider).</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- BUILD & DOCS -->
+  <section class="group" data-layer="other">
+    <div class="ghead"><span class="tag other">Build &amp; docs</span><h2>Project setup and documentation</h2>
+      <p>Neither frontend nor backend: these build the apps or describe the project.</p></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Role</th><th>Files</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td class="role">Android build</td><td class="files">
+            <div class="row"><span class="path">android/build.gradle.kts</span></div>
+            <div class="row"><span class="path">android/settings.gradle.kts</span></div>
+            <div class="row"><span class="path">android/app/build.gradle.kts</span></div>
+            <div class="row"><span class="path">android/gradle.properties</span></div>
+            <div class="row"><span class="path">android/gradlew, gradlew.bat, gradle/wrapper/*</span></div></td>
+          <td class="desc">Gradle setup. The app build file sets minSdk 26 / targetSdk 36 and the dependencies: Firebase (AI, on-device AI, Auth, Firestore, Remote Config, App Check), MediaPipe, Jetpack Compose. The wrapper lets anyone build without installing Gradle.</td></tr>
+        <tr><td class="role">Android manifest</td><td class="files"><div class="row"><span class="path">android/app/src/main/AndroidManifest.xml</span></div></td>
+          <td class="desc">Declares the app, its activity, permissions and the camera FileProvider.</td></tr>
+        <tr><td class="role">iOS project</td><td class="files"><div class="row"><span class="path">ios/project.yml</span></div></td>
+          <td class="desc">XcodeGen spec that generates the Xcode project: iOS 26+, Firebase iOS SDK 12.19+, camera/photo permission texts.</td></tr>
+        <tr><td class="role">Git ignores</td><td class="files">
+            <div class="row"><span class="path">.gitignore, android/.gitignore, ios/.gitignore</span></div></td>
+          <td class="desc">Keep build output and Firebase secrets (<code>google-services.json</code>, <code>GoogleService-Info.plist</code>) out of git.</td></tr>
+        <tr><td class="role">Readme &amp; licence</td><td class="files"><div class="row"><span class="path">README.md</span></div><div class="row"><span class="path">LICENSE</span></div></td>
+          <td class="desc">Overview, the hybrid on-device/cloud design table, setup steps for Firebase, Android and iOS. Apache 2.0 licence.</td></tr>
+        <tr><td class="role">Project docs</td><td class="files">
+            <div class="row"><span class="path">docs/PROPOSAL.md</span></div>
+            <div class="row"><span class="path">docs/DEVPOST_STORY.md</span></div>
+            <div class="row"><span class="path">docs/RESEARCH_HANDOFF.md</span></div>
+            <div class="row"><span class="path">docs/file-map.html</span></div></td>
+          <td class="desc">Hackathon proposal, the Devpost write-up, the research handoff (why the pain offset and embeddings exist, what to replace them with), and this file map.</td></tr>
+        <tr><td class="role">Research</td><td class="files">
+            <div class="row"><span class="path">reports/*.md</span></div>
+            <div class="row"><span class="path">research_notes/**/*.md</span></div>
+            <div class="row"><span class="path">docs/research/*.html, *.png</span></div></td>
+          <td class="desc">Literature research on cat detection, identification, emotion and pain scoring, and on open-source models (vision backbones, on-device VLMs, cat-specific models). Not used by the app at runtime.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <footer>Android paths shortened: <span class="path">android/…/</span> means <span class="path">android/app/src/main/java/dev/twobrain/purrsense/</span>.</footer>
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('.filters button');
+  const groups = document.querySelectorAll('section.group[data-layer]');
+  const setAll = open => document.querySelectorAll('.tree details').forEach(d => { d.open = open; });
+  document.getElementById('t-open').addEventListener('click', () => setAll(true));
+  document.getElementById('t-close').addEventListener('click', () => { setAll(false); document.querySelector('.tree details').open = true; });
+  buttons.forEach(b => b.addEventListener('click', () => {
+    const f = b.dataset.f;
+    buttons.forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    groups.forEach(g => { g.hidden = !(f === 'all' || g.dataset.layer === f); });
+  }));
+</script>
