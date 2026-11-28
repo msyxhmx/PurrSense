@@ -84,8 +84,21 @@ docs/file-map.html  Which files are frontend / backend and what each one does
 
 ## Status / known gaps (hackathon build)
 - The hybrid SDKs are **experimental**. The code follows the Firebase docs as of Nov 2026. The iOS docs show two spellings of the hybrid session API; the alternative is noted in `CatBrain.swift`.
-- On-device output is capped at ~256 tokens and the input at ~4k, so prompts are compact. If on-device JSON can't be parsed, Android retries once in the cloud.
+- On-device output is capped at ~256 tokens and the input at ~4k, so prompts are compact. If the model's JSON can't be read, the app retries once (Android in the cloud, iOS with the same model), then tells the user to try again.
 - First launch needs a connection (anonymous sign-in + Remote Config). After that, Firestore's offline cache lets on-device scans and history work offline.
+
+## Known limitations
+
+PurrSense is a screening aid, not a diagnosis. In this build:
+
+- **Gemini still scores pain.** Gemini under-scores the Feline Grimace Scale by about 2.4 points out of 10 (Sci Rep 2025), so the app adds 2 points before the alert check. That is a correction for an average error, not a fix: an individual cat can still be scored too high or too low.
+- **Nothing has been checked against vets.** No pain score or mood from this app has been compared with scores from vets on owner-taken photos. Published accuracy for automated grimace scoring is 66–78% on cats the model hasn't seen before.
+- **Cat recognition uses general-purpose image models.** They weren't trained to tell individual cats apart. Look-alike cats may be confused, and the 0.6 match threshold (`cat_id_min_similarity`) is a placeholder that hasn't been tuned.
+- **Mood is a rough reading.** It is positive, neutral or negative only, because there is no scientific basis for finer cat mood labels from a photo.
+- **Android has no on-device cat check yet.** iOS crops the cat on the phone before anything is uploaded. Android sends the whole photo when it falls back to the cloud.
+- **iOS is compiled in CI but not tested on a phone.** The [iOS build workflow](.github/workflows/ios-build.yml) builds for the simulator with signing turned off.
+
+The plan to replace Gemini as the scorer with on-device models is in [`docs/RESEARCH_HANDOFF.md`](docs/RESEARCH_HANDOFF.md).
 
 ## License
 [Apache 2.0](LICENSE)

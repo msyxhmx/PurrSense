@@ -12,6 +12,7 @@ targets:
   PurrSense:
     type: application
     platform: iOS
+    scheme: {}   # shared scheme, so xcodebuild -scheme works in CI
     sources: [PurrSense]
     resources:
       - path: PurrSense/GoogleService-Info.plist

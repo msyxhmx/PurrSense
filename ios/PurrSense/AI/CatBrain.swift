@@ -57,9 +57,19 @@ final class CatBrain {
         guard vision.isCat else { return nil }
 
         t0 = Date()
-        let response = try await visionModel.generateContent(vision.crop.scaled(maxSide: 768), Prompts.quickRead)
+        let small = vision.crop.scaled(maxSide: 768)
+        let response = try await visionModel.generateContent(small, Prompts.quickRead)
         trace.append(TraceStep(step: "See (mood + grimace)", brain: .cloud, millis: ms(since: t0)))
-        var read = Self.parse(QuickRead.self, response.text) ?? QuickRead()
+        var parsed = Self.parse(QuickRead.self, response.text)
+        if parsed == nil {
+            // The model occasionally breaks the JSON format: retry once before giving up.
+            t0 = Date()
+            let retry = try await visionModel.generateContent(small, Prompts.quickRead)
+            trace.append(TraceStep(step: "See (retry)", brain: .cloud, millis: ms(since: t0)))
+            parsed = Self.parse(QuickRead.self, retry.text)
+        }
+        // Unreadable twice: say so, rather than reporting "no cat" for a photo that has one.
+        guard var read = parsed else { throw UnreadableAnswerError() }
 
         t0 = Date()
         read.embedding = (try? CatVision.featurePrint(of: vision.crop)) ?? []
@@ -108,7 +118,7 @@ final class CatBrain {
     /// Rule-based escalation: fully explainable, no model involved. Uses the corrected pain score
     /// (raw total + Remote Config offset), because Gemini under-scores FGS pain.
     func needsDeepCheck(_ read: QuickRead) -> Bool {
-        read.cat && (read.fgs.painScore(offset: config.painOffset) >= config.grimaceThreshold || !read.signs.isEmpty)
+        Escalation.needsDeepCheck(read, threshold: config.grimaceThreshold, painOffset: config.painOffset)
     }
 
     /// Step 4 "Deep Check": larger cloud model on a higher-resolution crop.
@@ -128,11 +138,9 @@ final class CatBrain {
 
     // MARK: - Helpers
 
-    /// Models sometimes wrap JSON in prose or code fences: take the outermost {...}.
+    /// Models sometimes wrap JSON in prose or code fences or get types slightly wrong: see ModelJSON.
     static func parse<T: Decodable>(_ type: T.Type, _ text: String?) -> T? {
-        guard let text, let start = text.firstIndex(of: "{"), let end = text.lastIndex(of: "}"), start < end,
-              let data = String(text[start...end]).data(using: .utf8) else { return nil }
-        return try? JSONDecoder().decode(T.self, from: data)
+        ModelJSON.decode(T.self, from: text)
     }
 
     private func ms(since d: Date) -> Int { Int(Date().timeIntervalSince(d) * 1000) }

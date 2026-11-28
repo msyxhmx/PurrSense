@@ -56,13 +56,36 @@ object Mood {
     const val NEUTRAL = "neutral"
     const val NEGATIVE = "negative"
 
-    fun normalize(raw: String): String = when (raw.trim().lowercase()) {
-        POSITIVE, "relaxed", "playful", "content", "happy" -> POSITIVE
-        NEUTRAL, "alert", "sleepy", "calm" -> NEUTRAL
-        NEGATIVE, "anxious", "fearful", "irritated", "uncomfortable", "stressed" -> NEGATIVE
-        else -> "unknown"
+    private val POSITIVE_WORDS = setOf(POSITIVE, "relaxed", "playful", "content", "happy", "comfortable", "affectionate")
+    private val NEUTRAL_WORDS = setOf(NEUTRAL, "alert", "sleepy", "calm", "curious", "resting", "neutral-ish")
+    private val NEGATIVE_WORDS = setOf(
+        NEGATIVE, "anxious", "fearful", "irritated", "uncomfortable", "stressed",
+        "scared", "afraid", "angry", "aggressive", "agitated", "tense", "pain", "painful", "distressed",
+    )
+
+    /**
+     * Maps a model's mood word onto the 3 classes. Tolerates case, punctuation and short phrases
+     * such as "Relaxed." or "mostly calm". A phrase with both a negative and another word counts
+     * as negative, so a worrying answer is never shown as fine.
+     */
+    fun normalize(raw: String): String {
+        val words = raw.lowercase().split(Regex("[^a-z-]+")).filter { it.isNotEmpty() }.toSet()
+        return when {
+            words.any { it in NEGATIVE_WORDS } -> NEGATIVE
+            words.any { it in POSITIVE_WORDS } -> POSITIVE
+            words.any { it in NEUTRAL_WORDS } -> NEUTRAL
+            else -> "unknown"
+        }
     }
 }
+
+/**
+ * Rule-based escalation: no model involved, fully explainable. A Deep Check runs when a cat is
+ * seen and either the corrected pain score (raw grimace total + [painOffset]) reaches
+ * [threshold] or the model reported visible health signs.
+ */
+fun needsDeepCheck(read: QuickRead, threshold: Int, painOffset: Int): Boolean =
+    read.cat && (read.fgs.painScore(painOffset) >= threshold || read.signs.isNotEmpty())
 
 /** Output of the "See" step (quick read). Parsed from model JSON. */
 @Serializable

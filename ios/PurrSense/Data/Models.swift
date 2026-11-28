@@ -39,11 +39,12 @@ struct Grimace: Decodable {
     init() {}
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        ears = (try? c.decode(Int.self, forKey: .ears)) ?? 0
-        eyes = (try? c.decode(Int.self, forKey: .eyes)) ?? 0
-        muzzle = (try? c.decode(Int.self, forKey: .muzzle)) ?? 0
-        whiskers = (try? c.decode(Int.self, forKey: .whiskers)) ?? 0
-        head = (try? c.decode(Int.self, forKey: .head)) ?? 0
+        // Lenient: a score written as 1.0 or "1" must not silently become 0 and hide pain.
+        ears = c.lenientScore(.ears)
+        eyes = c.lenientScore(.eyes)
+        muzzle = c.lenientScore(.muzzle)
+        whiskers = c.lenientScore(.whiskers)
+        head = c.lenientScore(.head)
     }
     enum CodingKeys: String, CodingKey { case ears, eyes, muzzle, whiskers, head }
 }
@@ -52,13 +53,33 @@ struct Grimace: Decodable {
 /// mood labels. Pain is read from the grimace score, not from mood. `normalize` also maps the
 /// older 8 labels, so earlier readings and off-format model answers still display sensibly.
 enum Mood {
+    static let positiveWords: Set<String> = ["positive", "relaxed", "playful", "content", "happy", "comfortable", "affectionate"]
+    static let neutralWords: Set<String> = ["neutral", "alert", "sleepy", "calm", "curious", "resting", "neutral-ish"]
+    static let negativeWords: Set<String> = [
+        "negative", "anxious", "fearful", "irritated", "uncomfortable", "stressed",
+        "scared", "afraid", "angry", "aggressive", "agitated", "tense", "pain", "painful", "distressed",
+    ]
+
+    /// Maps a model's mood word onto the 3 classes. Tolerates case, punctuation and short phrases
+    /// such as "Relaxed." or "mostly calm". Any negative word wins, so a worrying answer is never
+    /// shown as fine.
     static func normalize(_ raw: String) -> String {
-        switch raw.trimmingCharacters(in: .whitespaces).lowercased() {
-        case "positive", "relaxed", "playful", "content", "happy": return "positive"
-        case "neutral", "alert", "sleepy", "calm": return "neutral"
-        case "negative", "anxious", "fearful", "irritated", "uncomfortable", "stressed": return "negative"
-        default: return "unknown"
-        }
+        let words = Set(raw.lowercased()
+            .split(whereSeparator: { !(($0.isASCII && $0.isLetter) || $0 == "-") })
+            .map(String.init))
+        if !words.isDisjoint(with: negativeWords) { return "negative" }
+        if !words.isDisjoint(with: positiveWords) { return "positive" }
+        if !words.isDisjoint(with: neutralWords) { return "neutral" }
+        return "unknown"
+    }
+}
+
+/// Rule-based escalation: no model involved, fully explainable. A Deep Check runs when a cat is
+/// seen and either the corrected pain score (raw grimace total + offset) reaches the threshold or
+/// the model reported visible health signs.
+enum Escalation {
+    static func needsDeepCheck(_ read: QuickRead, threshold: Int, painOffset: Int) -> Bool {
+        read.cat && (read.fgs.painScore(offset: painOffset) >= threshold || !read.signs.isEmpty)
     }
 }
 
@@ -77,13 +98,13 @@ struct QuickRead: Decodable {
     init() {}
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        cat = (try? c.decode(Bool.self, forKey: .cat)) ?? false
-        faceVisible = (try? c.decode(Bool.self, forKey: .faceVisible)) ?? false
+        cat = c.lenientFlag(.cat)
+        faceVisible = c.lenientFlag(.faceVisible)
         appearance = (try? c.decode(String.self, forKey: .appearance)) ?? ""
         mood = Mood.normalize((try? c.decode(String.self, forKey: .mood)) ?? "")
-        moodConfidence = (try? c.decode(Double.self, forKey: .moodConfidence)) ?? 0
+        moodConfidence = c.lenientDouble(.moodConfidence)
         fgs = (try? c.decode(Grimace.self, forKey: .fgs)) ?? Grimace()
-        signs = (try? c.decode([String].self, forKey: .signs)) ?? []
+        signs = c.lenientList(.signs)
     }
     enum CodingKeys: String, CodingKey {
         case cat, appearance, mood, fgs, signs
@@ -92,8 +113,14 @@ struct QuickRead: Decodable {
 }
 
 struct IdMatch: Decodable {
-    var catId: String
-    var confidence: Double
+    var catId = "unknown"
+    var confidence = 0.0
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        catId = (try? c.decode(String.self, forKey: .catId)) ?? "unknown"
+        confidence = c.lenientDouble(.confidence)
+    }
     enum CodingKeys: String, CodingKey { case catId = "cat_id", confidence }
 }
 
@@ -107,7 +134,7 @@ struct DeepCheck: Decodable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         urgency = (try? c.decode(String.self, forKey: .urgency)) ?? "monitor"
         fgs = (try? c.decode(Grimace.self, forKey: .fgs)) ?? Grimace()
-        findings = (try? c.decode([String].self, forKey: .findings)) ?? []
+        findings = c.lenientList(.findings)
         summary = (try? c.decode(String.self, forKey: .summary)) ?? ""
     }
     enum CodingKeys: String, CodingKey { case urgency, fgs, findings, summary }
