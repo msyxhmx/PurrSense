@@ -3,7 +3,10 @@
 name: iOS build
 
 on:
+  # Branches with a pull request build through pull_request; pushes build only on main,
+  # so one push never starts two macOS runs.
   push:
+    branches: [main]
     paths:
       - "ios/**"
       - ".github/workflows/ios-build.yml"
