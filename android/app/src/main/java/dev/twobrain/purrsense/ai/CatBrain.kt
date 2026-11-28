@@ -23,9 +23,9 @@ import dev.twobrain.purrsense.data.IdMatch
 import dev.twobrain.purrsense.data.Mood
 import dev.twobrain.purrsense.data.QuickRead
 import dev.twobrain.purrsense.data.TraceStep
+import dev.twobrain.purrsense.data.needsDeepCheck
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.json.Json
 
 /**
  * The two brains of PurrSense. ALL Firebase AI Logic calls live in this file.
@@ -63,8 +63,6 @@ class CatBrain(private val config: AppConfig) {
         },
     )
 
-    private val json = Json { ignoreUnknownKeys = true; isLenient = true; coerceInputValues = true }
-
     // ---------------------------------------------------------------- on-device model lifecycle
 
     /** Human-readable on-device status: UNAVAILABLE / DOWNLOADABLE / DOWNLOADING / AVAILABLE. */
@@ -94,7 +92,8 @@ class CatBrain(private val config: AppConfig) {
         Log.w(TAG, "Quick read unparseable from $brain, retrying in cloud: ${response.text}")
         val (retry, ms2) = timed { cloudQuick.generateContent(prompt) }
         trace += TraceStep("See (cloud retry)", Brain.CLOUD, ms2)
-        return parse<QuickRead>(retry.text)?.normalized() ?: QuickRead()
+        return parse<QuickRead>(retry.text)?.normalized()
+            ?: throw UnreadableAnswerException()
     }
 
     private fun QuickRead.normalized() = copy(mood = Mood.normalize(mood))
@@ -147,7 +146,7 @@ class CatBrain(private val config: AppConfig) {
      * pain score (raw total + Remote Config offset), because Gemini under-scores FGS pain.
      */
     fun needsDeepCheck(read: QuickRead): Boolean =
-        read.cat && (read.fgs.painScore(config.painOffset) >= config.grimaceThreshold || read.signs.isNotEmpty())
+        needsDeepCheck(read, config.grimaceThreshold, config.painOffset)
 
     /** Step 4 "Deep Check": larger cloud model, higher-resolution image. */
     suspend fun deepCheck(photo: Bitmap, trace: MutableList<TraceStep>): DeepCheck? {
@@ -172,15 +171,8 @@ class CatBrain(private val config: AppConfig) {
         // inferenceSource is ON_DEVICE or IN_CLOUD for hybrid models.
         if (inferenceSource.toString().contains("DEVICE")) Brain.ON_DEVICE else Brain.CLOUD
 
-    private inline fun <reified T> parse(text: String?): T? {
-        if (text == null) return null
-        val start = text.indexOf('{')
-        val end = text.lastIndexOf('}')
-        if (start < 0 || end <= start) return null
-        return runCatching { json.decodeFromString<T>(text.substring(start, end + 1)) }
-            .onFailure { Log.w(TAG, "JSON parse failed: ${it.message}") }
-            .getOrNull()
-    }
+    private inline fun <reified T> parse(text: String?): T? =
+        ModelJson.decode<T>(text).also { if (it == null) Log.w(TAG, "Could not read model JSON: $text") }
 
     private inline fun <T> timed(block: () -> T): Pair<T, Long> {
         val t0 = System.currentTimeMillis()
@@ -197,3 +189,7 @@ class CatBrain(private val config: AppConfig) {
 
     companion object { private const val TAG = "CatBrain" }
 }
+
+/** Neither the on-device nor the cloud answer could be read as JSON. */
+class UnreadableAnswerException :
+    Exception("The AI's answer couldn't be read. Please try the photo again.")

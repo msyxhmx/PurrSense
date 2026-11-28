@@ -13,13 +13,15 @@ enum RemoteConfigService {
             "cloud_quick_model": "gemini-3.5-flash-lite" as NSString,
             "cloud_deep_model": "gemini-3.8-flash" as NSString,
             "grimace_alert_threshold": 4 as NSNumber, // published FGS analgesia threshold: 4/10
-            "gemini_pain_offset": 2 as NSNumber,
-            "cat_id_min_similarity": 0.6 as NSNumber, // placeholder: calibrate on look-alike cats      // Gemini under-scores FGS pain by ~2.4/10 (Sci Rep 2025)
+            "gemini_pain_offset": 2 as NSNumber,       // Gemini under-scores FGS pain by ~2.4/10 (Sci Rep 2025)
+            "cat_id_min_similarity": 0.6 as NSNumber, // placeholder: calibrate on look-alike cats
         ])
         _ = try? await rc.fetchAndActivate() // offline: defaults / last activated values
         var c = AppConfig()
-        if let s = rc.configValue(forKey: "cloud_quick_model").stringValue, !s.isEmpty { c.cloudQuickModel = s }
-        if let s = rc.configValue(forKey: "cloud_deep_model").stringValue, !s.isEmpty { c.cloudDeepModel = s }
+        let quick = rc.configValue(forKey: "cloud_quick_model").stringValue
+        if !quick.isEmpty { c.cloudQuickModel = quick }
+        let deep = rc.configValue(forKey: "cloud_deep_model").stringValue
+        if !deep.isEmpty { c.cloudDeepModel = deep }
         let t = rc.configValue(forKey: "grimace_alert_threshold").numberValue.intValue
         if (1...10).contains(t) { c.grimaceThreshold = t }
         let o = rc.configValue(forKey: "gemini_pain_offset").numberValue.intValue
